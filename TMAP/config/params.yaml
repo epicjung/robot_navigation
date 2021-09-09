@@ -1,6 +1,6 @@
 lidar_model : "OS" # OS or HDL
-cloud_info_topic: "/lidar/feature/cloud_info"
-odom_topic: "/odometry/imu_incremental"
+cloud_info_topic: "/lvi_sam/lidar/feature/cloud_info"
+odom_topic: "odometry/imu"
 ptCloudMsg_topic: "/lig_node/GSeged_node"
 sensor_height : 1.5   #HUSKY
 

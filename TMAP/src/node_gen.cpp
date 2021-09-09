@@ -30,7 +30,7 @@ void callbackCloudInfo(const lvi_sam::cloud_info::ConstPtr &cloud_info_msg){
     cloudLock_.lock();
     cloudQueue_.push_back(*cloud_info_msg);
     cloudLock_.unlock();
-    // std::cout<< "PtCloud Queue size: "<< cloudQueue_.size() <<std::endl;
+    std::cout<< "PtCloud Queue size: "<< cloudQueue_.size() <<std::endl;
     
     // pcl::PointCloud<ouster_ptype::PointOS0> temp_ptCloud = ptHandle::cloudmsg2cloud<ouster_ptype::PointOS0>(*pc_msg);
     // std::cout <<"\033[1;32m" << "cloud stamp: "  << temp_ptCloud.header.stamp << "\033[0m" <<std::endl;
@@ -45,6 +45,8 @@ void callbackOdom(const nav_msgs::Odometry::ConstPtr &odom_msg){
     odomLock_.lock();
     odomQueue_.push_back(*odom_msg);
     odomLock_.unlock();
+    std::cout<< "odom Queue size: "<< odomQueue_.size() <<std::endl;
+
 
 }
 
@@ -90,6 +92,7 @@ void process(){
             ROS_ERROR_STREAM("Error in deskewing");
             continue;
         } else {
+            std::cout << "FUCK" << std::endl;
             tMap_msgs::TrvMapDet_node TrvMap_node;
 
             TrvMap_node.header.stamp = roughdeskew->getLiDARheader().stamp;
