@@ -27,7 +27,6 @@ float32 odomYaw
 int64 odomResetId
 
 # Point cloud messages
-sensor_msgs/PointCloud2 cloud_gAlign  # original cloud deskewed
 sensor_msgs/PointCloud2 cloud_deskewed  # original cloud deskewed
 sensor_msgs/PointCloud2 cloud_corner    # extracted corner feature
 sensor_msgs/PointCloud2 cloud_surface   # extracted surface feature
