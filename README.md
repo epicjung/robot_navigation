@@ -1,2 +1,3 @@
 # LIGNex1
 
+''' Installation '''
