@@ -1,0 +1,7 @@
+<launch>
+
+    <node pkg="receive_gps" type="gps_node" name="gps_node" output="screen">
+        <remap from="/gt_traj_pub" to="/gps/path"/>
+    </node>
+
+</launch>
