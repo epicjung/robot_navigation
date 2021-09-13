@@ -5,6 +5,7 @@
 #include <queue>
 #include <execinfo.h>
 #include <csignal>
+#include <string>
 
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
@@ -124,15 +125,15 @@ public:
         zCur = transform.getOrigin().z();
         tf::Matrix3x3 m(transform.getRotation());
         m.getRPY(rollCur, pitchCur, yawCur);
-        Eigen::Affine3f transNow = pcl::getTransformation(xCur, yCur, zCur, rollCur, pitchCur, yawCur);
+        Eigen::Affine3f transWorld2Lidar = pcl::getTransformation(xCur, yCur, zCur, rollCur, pitchCur, yawCur);
 
         // 0.3.1 (euigon) get extrinsic (translation only by assuming z (cam) = x (lidar)) from cam to lidar
         Eigen::Affine3f transLidar2Cam = pcl::getTransformation(L_C_TX, L_C_TY, L_C_TZ, 0.0, 0.0, 0.0);
-        transNow = transNow * transLidar2Cam; // t_world_lidar * t_lidar_cam = t_world_cam
+        Eigen::Affine3f transWorld2Cam = transWorld2Lidar * transLidar2Cam; // t_world_lidar * t_lidar_cam = t_world_cam
 
         // 0.4 transform cloud from global frame to camera frame
         pcl::PointCloud<PointType>::Ptr depth_cloud_local(new pcl::PointCloud<PointType>());
-        pcl::transformPointCloud(*depthCloud, *depth_cloud_local, transNow.inverse());
+        pcl::transformPointCloud(*depthCloud, *depth_cloud_local, transWorld2Cam.inverse());
 
         // 0.5 project undistorted normalized (z) 2d features onto a unit sphere
         pcl::PointCloud<PointType>::Ptr features_3d_sphere(new pcl::PointCloud<PointType>());
@@ -292,6 +293,8 @@ public:
                 points_distance.push_back(pointDistance(depth_cloud_local->points[i]));
             }
 
+            // printf("Depth cloud size: %d\n", (int)points_distance.size());
+
             cv::Mat showImage, circleImage;
             cv::cvtColor(imageCur, showImage, cv::COLOR_GRAY2RGB);
             circleImage = showImage.clone();
@@ -299,7 +302,7 @@ public:
             {
                 float r, g, b;
                 getColor(points_distance[i], 50.0, r, g, b);
-                cv::circle(circleImage, points_2d[i], 0, cv::Scalar(r, g, b), 5);
+                cv::circle(circleImage, points_2d[i], 0, cv::Scalar(r, g, b), 2);
             }
             cv::addWeighted(showImage, 1.0, circleImage, 0.7, 0, showImage); // blend camera image and circle image
 

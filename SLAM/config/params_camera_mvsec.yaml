@@ -4,8 +4,8 @@
 project_name: "lvi_sam"
 
 #common parameters
-imu_topic: "/imu/data"
-image_topic: "/image_proc_resize/image"
+imu_topic: "/davis/left/imu"
+image_topic: "/cam0/image_raw"
 point_cloud_topic: "lvi_sam/lidar/deskew/cloud_deskewed"
 
 # Lidar Params
@@ -14,38 +14,38 @@ lidar_skip: 3                    # skip this amount of scans
 align_camera_lidar_estimation: 0 # align camera and lidar estimation for visualization
 
 # lidar to camera extrinsic (YPR = ZYX)
-lidar_to_cam_tx: -0.13
-lidar_to_cam_ty: -0.02
-lidar_to_cam_tz: -0.18
-lidar_to_cam_rx: 0.0
-lidar_to_cam_ry: -1.5707963
-lidar_to_cam_rz: 1.5707963
+lidar_to_cam_tx: 0.1320000035646299364
+lidar_to_cam_ty: 0.036999995961686223287
+lidar_to_cam_tz: -0.079999997644997820793
+lidar_to_cam_rx: -1.5851747
+lidar_to_cam_ry: -0.0364501
+lidar_to_cam_rz: -1.5851243
 
 # lidar to imu extrinsic 
-lidar_to_imu_tx: -0.3787
-lidar_to_imu_ty: 0.0
-lidar_to_imu_tz: -0.6945
-lidar_to_imu_rx: 0.0
-lidar_to_imu_ry: 0.0
-lidar_to_imu_rz: 0.0
+lidar_to_imu_tx: 0.01137
+lidar_to_imu_ty: 0.0408
+lidar_to_imu_tz: -0.0735
+lidar_to_imu_rx: 1.1322
+lidar_to_imu_ry: -1.5456
+lidar_to_imu_rz: 1.9715
 
 # camera model (new camera)
 model_type: PINHOLE
 camera_name: camera
 
 # Mono camera config
-image_width: 480
-image_height: 270
+image_width: 346
+image_height: 260
 distortion_parameters:
    k1: 0.0
    k2: 0.0
    p1: 0.0
    p2: 0.0
 projection_parameters:
-   fx: 230.39028930664062
-   fy: 230.31454467773438
-   cx: 239.93666076660156
-   cy: 136.52784729003906
+   fx: 223.9940010790056
+   fy: 223.61783486959376
+   cx: 170.7684322973841
+   cy: 128.18711828338436
 
 
 #imu parameters       The more accurate parameters you provide, the worse performance
@@ -64,31 +64,16 @@ extrinsicRotation: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [ 0, 0, 1, 
-           -1, 0, 0, 
-           0, -1, 0]
+   data: [ 0.0135, -0.9999, -0.0040, 
+           0.9996,    0.0136,   -0.0232, 
+           0.0233,   -0.0037,    0.9997]
 
 #Translation from camera frame to imu frame, imu^T_cam
 extrinsicTranslation: !!opencv-matrix
    rows: 3
    cols: 1
    dt: d
-   data: [0.4681, 0.0, 0.2539] 
-
-# # Rotation from imu frame to cam
-# extrinsicRotation: !!opencv-matrix
-#    rows: 3
-#    cols: 3
-#    dt: d
-#    data: [ 0, -1, 0, 
-#            0, 0, -1, 
-#            1, 0, 0]
-# # Translation from imu frame to cam
-# extrinsicTranslation: !!opencv-matrix
-#    rows: 3
-#    cols: 1
-#    dt: d
-#    data: [0.0, 0.2539, -0.4681] 
+   data: [-0.0064, 0.0029, 0.0185]
 
 #feature traker paprameters
 max_cnt: 150            # max feature number in feature tracking

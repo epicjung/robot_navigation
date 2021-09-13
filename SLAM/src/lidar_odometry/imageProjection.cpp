@@ -1,7 +1,7 @@
 #include "utility.h"
 #include "lvi_sam/cloud_info.h"
 
-// Velodyne
+// // Velodyne
 // struct PointXYZIRT
 // {
 //     PCL_ADD_POINT4D

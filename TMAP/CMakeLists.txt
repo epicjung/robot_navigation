@@ -73,3 +73,4 @@ add_dependencies(gSeg_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 add_executable(tMap_node src/tMap_node.cpp ${algorithm_src})
 target_link_libraries(tMap_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_INCLUDE_DIRS})
 add_dependencies(tMap_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+

@@ -205,17 +205,18 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
                     {
                         // track count
                         double len = std::min(1.0, 1.0 * trackerData[i].track_cnt[j] / WINDOW_SIZE);
-                        cv::circle(tmp_img, trackerData[i].cur_pts[j], 4, cv::Scalar(255 * (1 - len), 255 * len, 0), 4);
+                        cv::circle(tmp_img, trackerData[i].cur_pts[j], 2, cv::Scalar(255 * (1 - len), 255 * len, 0), 1);
                     } else {
                         // depth 
                         if(j < depth_of_points.values.size())
                         {
                             if (depth_of_points.values[j] > 0)
-                                cv::circle(tmp_img, trackerData[i].cur_pts[j], 4, cv::Scalar(0, 255, 0), 4);
+                                cv::circle(tmp_img, trackerData[i].cur_pts[j], 2, cv::Scalar(0, 255, 0), 1);
                             else
-                                cv::circle(tmp_img, trackerData[i].cur_pts[j], 4, cv::Scalar(0, 0, 255), 4);
+                                cv::circle(tmp_img, trackerData[i].cur_pts[j], 2, cv::Scalar(0, 0, 255), 1);
                         }
                     }
+                    cv::putText(tmp_img, to_string(trackerData[i].ids[j]), trackerData[i].cur_pts[j], cv::FONT_HERSHEY_COMPLEX_SMALL, 0.4, cv::Scalar(255, 0, 0));
                 }
             }
 
@@ -294,6 +295,8 @@ void lidar_callback(const sensor_msgs::PointCloud2ConstPtr& laser_msg)
     double timeScanCur = laser_msg->header.stamp.toSec();
     cloudQueue.push_back(*laser_cloud_global);
     timeQueue.push_back(timeScanCur);
+
+    printf("CloudQueue size: %d\n", (int)cloudQueue.size());
 
     // 7. pop old cloud
     while (!timeQueue.empty())
