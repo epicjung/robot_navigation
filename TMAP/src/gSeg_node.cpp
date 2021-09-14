@@ -45,6 +45,9 @@ void callbackNode(const tMap_msgs::TrvMapDet_node::ConstPtr& node_msgs){
     new_node_msg.ptCloud_ground     = ptHandle::cloud2msg(pc_ground, cloud_frame);
     new_node_msg.ptCloud_nonground  = ptHandle::cloud2msg(pc_nonground, cloud_frame);
     new_node_msg.ptCloud_obstacle   = ptHandle::cloud2msg(pc_obstacle, cloud_frame);
+    new_node_msg.ptCloud_ground.header = new_node_msg.header;
+    new_node_msg.ptCloud_nonground.header = new_node_msg.header;
+    new_node_msg.ptCloud_obstacle.header = new_node_msg.header;
 
     pub_groundpc.publish(new_node_msg.ptCloud_ground);
     pub_nongroundpc.publish(new_node_msg.ptCloud_nonground);

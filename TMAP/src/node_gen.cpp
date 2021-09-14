@@ -92,7 +92,6 @@ void process(){
             ROS_ERROR_STREAM("Error in deskewing");
             continue;
         } else {
-            std::cout << "FUCK" << std::endl;
             tMap_msgs::TrvMapDet_node TrvMap_node;
 
             TrvMap_node.header.stamp = roughdeskew->getLiDARheader().stamp;

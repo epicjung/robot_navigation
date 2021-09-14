@@ -347,7 +347,7 @@ void Patchwork_M::estimate_ground(const pcl::PointCloud<pcl::PointXYZI>& cloudIn
           if (normal_(2,0) < normal_thr_){
             cloudNonground += patchwise_ground_;
             cloudNonground += patchwise_nonground_;
-            cloudNonground += patchwise_obstacle_;
+            cloudObstacle += patchwise_obstacle_;
           } else{
             cloudOut += patchwise_ground_;
             cloudNonground += patchwise_nonground_;
