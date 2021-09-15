@@ -36,7 +36,6 @@ find_package(Ceres REQUIRED)
 find_package(GTSAM REQUIRED QUIET)
 find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
 
-
 ######################
 ### Message generation
 ######################
@@ -77,6 +76,7 @@ link_directories(
     ${OpenCV_LIBRARY_DIRS}
     ${GTSAM_LIBRARY_DIRS}
 )
+
 
 set(HEADER_FILES src/tools/GMM/GMM.h src/tools/GMM/Matrix.h src/tools/GMM/Kmeans.h)
 set(gmm_library src/tools/GMM/GMM.cpp src/tools/GMM/Kmeans.cpp  src/tools/GMM/Matrix.cpp ${HEADER_FILES})

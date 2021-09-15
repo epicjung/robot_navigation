@@ -14,7 +14,6 @@
 #include <nav_msgs/Odometry.h>
 #include "tMap_msgs/TrvMapDet_node.h"
 #include "lvi_sam/cloud_info.h"
-#include "../../../SLAM/src/lidar_odometry/utility.h"
 #include "../../utils/point_types.hpp"
 #include "../../utils/ptcloud_handle.hpp"
 #include "../../utils/imu_handle.hpp"

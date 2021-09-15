@@ -4,9 +4,12 @@ project(TMAP)
 add_compile_options(-std=c++11)
 set(CMAKE_BUILD_TYPE "Release")
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# set(CMAKE_CXX_STANDARD 14)
+# set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -43,6 +46,11 @@ include_directories(
   utils
 )
 
+link_directories(
+    ${PCL_LIBRARY_DIRS}
+    ${OpenCV_LIBRARY_DIRS}
+)
+
 set(algorithm_src
     ../SLAM/src/lidar_odometry/utility.h
     utils/imu_handle.hpp
@@ -71,6 +79,6 @@ add_dependencies(gSeg_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 
 # # traversability_map_node
 add_executable(tMap_node src/tMap_node.cpp ${algorithm_src})
-target_link_libraries(tMap_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(tMap_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(tMap_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
