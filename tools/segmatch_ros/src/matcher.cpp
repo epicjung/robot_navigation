@@ -20,7 +20,7 @@ void SegmentMatcher::cloudHandler(const sensor_msgs::PointCloud2::ConstPtr &msgI
     pcl::PointCloud<PointType>::Ptr cloudIn(new pcl::PointCloud<PointType>);
     pcl::fromROSMsg(*msgIn, *cloudIn);
     processTargetCloud(cloudIn);
-    publishTargetRepresentation()
+    publishTargetRepresentation(msgIn->header.stamp, "base_link");
 }
 
 void SegmentMatcher::init(ros::NodeHandle& nh) 

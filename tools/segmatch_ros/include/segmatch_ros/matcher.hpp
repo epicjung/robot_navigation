@@ -42,7 +42,7 @@ class SegmentMatcher
 
         void processTargetCloud(pcl::PointCloud<PointType>::Ptr pointcloud);
 
-        void publishTargetRepresentation(sensor_msgs::PointCloud2 &cloud_out, ros::Time time, std::string frame);
+        void publishTargetRepresentation(ros::Time time, std::string frame);
 
         void loadTargetCloud(pcl::PointCloud<PointType>::Ptr pointcloud);
 
