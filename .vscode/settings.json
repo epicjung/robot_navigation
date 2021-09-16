@@ -91,5 +91,6 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "filesystem": "cpp"
-    }
+    },
+    "ros.distro": "melodic"
 }
