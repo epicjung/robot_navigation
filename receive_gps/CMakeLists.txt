@@ -13,7 +13,6 @@ find_package(catkin REQUIRED
     nav_msgs
     tf
     geometry_msgs
-    novatel_gps_msgs
 )
 
 catkin_package(

@@ -32,6 +32,8 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>costmap_2d</exec_depend>
 
+  <depend>tMap_msgs</depend>
+
 
 
 

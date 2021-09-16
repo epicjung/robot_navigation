@@ -17,7 +17,10 @@ SegmentMatcher::~SegmentMatcher()
 
 void SegmentMatcher::cloudHandler(const sensor_msgs::PointCloud2::ConstPtr &msgIn)
 {
-
+    pcl::PointCloud<PointType>::Ptr cloudIn(new pcl::PointCloud<PointType>);
+    pcl::fromROSMsg(*msgIn, *cloudIn);
+    processTargetCloud(cloudIn);
+    publishTargetRepresentation()
 }
 
 void SegmentMatcher::init(ros::NodeHandle& nh) 
@@ -58,13 +61,14 @@ void SegmentMatcher::processCloud(pcl::PointCloud<PointType>::Ptr target_cloud, 
     // descriptors_->describe(clustered_cloud, &segmentation_timings);
 }
 
-void SegmentMatcher::publishTargetRepresentation(sensor_msgs::PointCloud2 &cloud_out, ros::Time time, std::string frame)
+void SegmentMatcher::publishTargetRepresentation(ros::Time time, std::string frame)
 {
   	// Convert segmented cloud to pcl cloud
 	pcl::PointCloud<PointType>::Ptr segmented_cloud(new pcl::PointCloud<PointType>);
 	clustered_target_cloud_.segmentedCloudToPcl(segmented_cloud);
 
 	// Convert pcl cloud to pointcloud2 message
+    sensor_msgs::PointCloud2 cloud_out; 
 	pcl::toROSMsg(*segmented_cloud, cloud_out);
 	cloud_out.header.stamp = time;
 	cloud_out.header.frame_id = frame;

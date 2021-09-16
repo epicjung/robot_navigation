@@ -19,16 +19,16 @@ find_package(libnabo REQUIRED)
 find_package(glog 0.6.0 REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system thread)
 
-set(OpenCV_CONFIG_PATH "/usr/local/share/OpenCV")
-set(OpenCV_DIR "/usr/local/share/OpenCV")
-find_package(OpenCV REQUIRED PATHS "/usr/local/share/OpenCV")
+# set(OpenCV_CONFIG_PATH "/usr/local/share/OpenCV")
+# set(OpenCV_DIR "/usr/local/share/OpenCV")
+find_package(OpenCV 2 REQUIRED)
 
-message(STATUS "OpenCV library status:")
-message(STATUS "    config: ${OpenCV_DIR}")
-message(STATUS "    version: ${OpenCV_VERSION}")
-message(STATUS "    libs: ${OpenCV_LIBS} ")
-message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
-message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
+# message(STATUS "OpenCV library status:")
+# message(STATUS "    config: ${OpenCV_DIR}")
+# message(STATUS "    version: ${OpenCV_VERSION}")
+# message(STATUS "    libs: ${OpenCV_LIBS} ")
+# message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
+# message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
 
 include_directories(
     include

@@ -22,16 +22,16 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
     nav_msgs
     # cv
-    cv_bridge
     # pcl
     pcl_conversions
+    cv_bridge
     # msg generation
     message_generation
 )
 
 find_package(OpenMP REQUIRED)
 find_package(PCL REQUIRED)
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 2 REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(GTSAM REQUIRED QUIET)
 find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
@@ -137,9 +137,9 @@ target_link_libraries(${PROJECT_NAME}_mapOptmization PRIVATE ${catkin_LIBRARIES}
 # add_dependencies(${PROJECT_NAME}_test ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 # target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
-# message(STATUS "OpenCV library status:")
-# message(STATUS "    config: ${OpenCV_DIR}")
-# message(STATUS "    version: ${OpenCV_VERSION}")
-# message(STATUS "    libs: ${OpenCV_LIBS} ")
-# message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
-# message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "OpenCV library status:")
+message(STATUS "    config: ${OpenCV_DIR}")
+message(STATUS "    version: ${OpenCV_VERSION}")
+message(STATUS "    libs: ${OpenCV_LIBS} ")
+message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
+message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")

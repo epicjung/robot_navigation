@@ -20,8 +20,6 @@
     <node pkg="$(arg project)"      type="$(arg project)_visual_odometry"     name="$(arg project)_visual_odometry"      output="screen"     respawn="true"/>
     <node pkg="$(arg project)"      type="$(arg project)_visual_loop"         name="$(arg project)_visual_loop"          output="screen"     respawn="true"/>
 
-    <node pkg="$(arg project)"       type="$(arg project)_test"                name="$(arg project)_test"                 output="screen"     respawn="true"/>
-
     <!-- Image conversion -->
     <!-- <node pkg="image_transport" type="republish" name="$(arg project)_republish" args="compressed in:=/camera/image_raw raw out:=/camera/image_raw" output="screen" respawn="true"/> -->
     <node name="republish" type="republish" pkg="image_transport" output="screen" args="compressed in:=/rgb/image_raw out:=/camera/image"/>

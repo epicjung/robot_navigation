@@ -23,7 +23,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tMap_msgs
-  lvi_sam
 )
 
 generate_messages(
