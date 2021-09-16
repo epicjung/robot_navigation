@@ -44,7 +44,7 @@ Id SegmentedCloud::getNextId(const Id& begin_counting_from_this_id)
     }
 }
 
-void SegmentedCloud::addSegments(const std::vector<pcl::PointIndices>& clusters_to_add,
+void SegmentedCloud::addValidSegments(const std::vector<pcl::PointIndices>& clusters_to_add,
                     const pcl::PointCloud<PointType>::Ptr reference_cloud)
 {
     for (size_t i = 0u; i < clusters_to_add.size(); ++i) 
@@ -82,6 +82,36 @@ void SegmentedCloud::addSegments(const std::vector<pcl::PointIndices>& clusters_
         valid_segments_.insert(std::make_pair(cluster.segment_id, cluster));      
     }
 }
+
+size_t SegmentedCloud::getNumberOfValidSegments() const {
+    return valid_segments_.size();
+}
+
+void SegmentedCloud::segmentedCloudToPcl(pcl::PointCloud<PointType>::Ptr cloud_out)
+{
+    std::vector<int> permuted_indexes;
+    pcl::PointCloud<PointType> cloud;
+    for (unsigned int i = 0u; i < getNumberOfValidSegments(); ++i)
+    {
+        permuted_indexes.push_back(i);
+    }
+    std::random_shuffle(permuted_indexes.begin(), permuted_indexes.end());
+    unsigned int i = 0u;
+    for (std::unordered_map<Id, Segment>::const_iterator it = begin(); it != end(); ++it)
+    {
+        pcl::PointCloud<PointType> segmented_cloud = it->second.point_cloud;
+        for (size_t j = 0u; j < segmented_cloud.size(); ++j)
+        {
+            segmented_cloud.points[j].intensity = permuted_indexes[i];
+        }
+        cloud += segmented_cloud;
+        ++i; 
+    }
+    cloud.width = 1;
+    cloud.height = cloud.points.size();
+    *cloud_out = cloud;
+}
+
 
 void SegmentedCloud::clear()
 {

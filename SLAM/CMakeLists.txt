@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(lvi_sam)
 
 ######################
@@ -7,7 +7,7 @@ project(lvi_sam)
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
-
+set(OpenCV_DIRS "/usr/local/lib/cmake/opencv4")
 ######################
 ### Packages
 ######################
@@ -77,7 +77,6 @@ link_directories(
     ${GTSAM_LIBRARY_DIRS}
 )
 
-
 set(HEADER_FILES src/tools/GMM/GMM.h src/tools/GMM/Matrix.h src/tools/GMM/Kmeans.h)
 set(gmm_library src/tools/GMM/GMM.cpp src/tools/GMM/Kmeans.cpp  src/tools/GMM/Matrix.cpp ${HEADER_FILES})
 
@@ -134,7 +133,13 @@ add_dependencies(${PROJECT_NAME}_mapOptmization ${catkin_EXPORTED_TARGETS} ${PRO
 target_compile_options(${PROJECT_NAME}_mapOptmization PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(${PROJECT_NAME}_mapOptmization PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${OpenMP_CXX_FLAGS} gtsam)
 
-add_executable(${PROJECT_NAME}_test src/lidar_odometry/test.cpp ${gmm_library})
-add_dependencies(${PROJECT_NAME}_test ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+# add_executable(${PROJECT_NAME}_test src/lidar_odometry/test.cpp ${gmm_library})
+# add_dependencies(${PROJECT_NAME}_test ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
+# target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 
+# message(STATUS "OpenCV library status:")
+# message(STATUS "    config: ${OpenCV_DIR}")
+# message(STATUS "    version: ${OpenCV_VERSION}")
+# message(STATUS "    libs: ${OpenCV_LIBS} ")
+# message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
+# message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")

@@ -6,7 +6,6 @@
 #include "segmatch/common.hpp"
 #include "segmatch/features.hpp"
 
-extern bool g_too_many_segments_to_store_ids_in_intensity(false);
 
 namespace segmatch  {
 
@@ -24,7 +23,7 @@ struct Segment
 
     Id segment_id = kNoId;
     unsigned int track_id;
-    segmatch::Features features;
+    Features features;
     pcl::PointCloud<PointType> point_cloud;
     PointXYZ centroid;
 };
@@ -32,18 +31,38 @@ struct Segment
 class SegmentedCloud
 {
     private:
-        // std::unique_ptr<Descriptors> descriptors_;
-        // std::unique_ptr<OpenCvRandomForest> classifier_;
         std::unordered_map<Id, Segment> valid_segments_;
+
     public: 
+        bool g_too_many_segments_to_store_ids_in_intensity;
+
         SegmentedCloud(){};
         
         Id getNextId(const Id& begin_counting_from_this_id = 0);
 
-        void addSegments(const std::vector<pcl::PointIndices>& clusters_to_add,
+        void addValidSegments(const std::vector<pcl::PointIndices>& clusters_to_add,
                          const pcl::PointCloud<PointType>::Ptr reference_cloud);
+        size_t getNumberOfValidSegments() const;
+        bool empty() const {return getNumberOfValidSegments() == 0;}
+        void clear(); 
 
-        void clear();                
+        std::unordered_map<Id, Segment>::const_iterator begin() const {
+            return valid_segments_.begin();
+        }
+
+        std::unordered_map<Id, Segment>::const_iterator end() const {
+            return valid_segments_.end();
+        }
+
+        std::unordered_map<Id, Segment>::iterator begin() {
+            return valid_segments_.begin();
+        }
+
+        std::unordered_map<Id, Segment>::iterator end() {
+            return valid_segments_.end();
+        }
+
+        void segmentedCloudToPcl(pcl::PointCloud<PointType>::Ptr cloud_out); 
 };
 }
 #endif

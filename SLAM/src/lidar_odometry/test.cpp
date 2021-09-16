@@ -1,6 +1,7 @@
 #include "utility.h"
 #include "lvi_sam/cloud_info.h"
 #include "GMM.h"
+#include "segmatch/matcher.hpp"
 
 struct Segment
 {
@@ -516,6 +517,11 @@ public:
         printf("Inference Time: %f\n", tic_toc.toc());
     }
     
+    void segmentCloud()
+    {
+
+    }
+
     void cloudHandler(const sensor_msgs::PointCloud2::ConstPtr &msgIn)
     {
         pubRayMap.publish(rayMapVisualization);
@@ -614,89 +620,6 @@ public:
             *depthCloud = *depthCloudDS;
         }
     }
-
-    void cloudInfoHandler(const lvi_sam::cloud_info::ConstPtr &msgIn)
-    {
-        // cloudInfoQueue.push_back(*msgIn);
-        // extractedCloud->clear();
-        // rayMap.clear();
-        // pcl::fromROSMsg(msgIn->cloud_deskewed, *extractedCloud);
-
-        // double thetaIncre = 360.0 / numSectors * (M_PI / 180.0); // [rad]
-        // for (auto &pt : extractedCloud->points)
-        // {
-        //     double radius = sqrt(pt.x*pt.x + pt.y + pt.y);
-        //     if (radius <= maxR)
-        //     {
-        //         double theta = xy2theta(pt.x, pt.y);
-        //         int sectorId = min(static_cast<int>(theta / thetaIncre), numSectors - 1);
-        //         // pt.intensity = static_cast<float>(sectorId + 1); 
-        //         sector.at(sectorId)->points.push_back(pt);
-        //     }
-        //     else
-        //     {
-        //         // pt.intensity = 0.0;
-        //     }
-        // }
-
-        // pcl::PointCloud<PointType>::Ptr outPcl (new pcl::PointCloud<PointType>);
-        // SegmentedCloud *segmentedCloud = new SegmentedCloud();
-
-        // for (int i = 0; i < (int)sector.size(); ++i)
-        // {
-        //     std::vector<pcl::PointIndices> clusterIndices;
-        //     clusterExtractor_.setInputCloud(sector[i]);
-        //     clusterExtractor_.extract(clusterIndices);
-        //     segmentedCloud->addValidSegments(clusterIndices, sector[i]);
-        //     printf("Sector %d: seg size: %d point size: %d\n", i, (int)clusterIndices.size(), (int)sector[i]->points.size());
-        // }
-        // for (auto seg : segmentedCloud->validSegments)
-        // {
-        //     *outPcl += seg.second.cloud;
-        // }
-        // printf("outPCL size: %d\n", (int)outPcl->points.size());
-        // sensor_msgs::PointCloud2 outCloud;
-        // pcl::toROSMsg(*outPcl, outCloud);
-        // outCloud.header.stamp = cloudHeader.stamp;
-        // outCloud.header.frame_id = "vins_body_ros";
-        // pubSegmentedCloud.publish(outCloud);
-    }
-
-    // void laserCloudHandler(const sensor_msgs::PointCloud2::ConstPtr& msgIn)
-    // {
-    //     cloudHeader = msgIn->header; // new cloud header
-    //     pcl::fromROSMsg(*msgIn, *extractedCloud); // new cloud for extraction
-
-    //     SegmentedCloud *segmentedCloud = new SegmentedCloud();
-
-    //     std::vector<pcl::PointIndices> clusterIndices;
-    //     clusterExtractor_.setInputCloud(extractedCloud);
-    //     clusterExtractor_.extract(clusterIndices);
-        
-    //     printf("clusterIndices: %d\n", (int)clusterIndices.size());
-    //     // pcl::PointCloud<pcl::PointNormal>::Ptr cloudWithNormals (new pcl::PointCloud<pcl::PointNormal>);
-    //     // pcl::copyPointCloud<PointType, pcl::PointNormal>(*extractedCloud, *cloudWithNormals);
-    //     printf("Copied successfully\n");
-    //     // segmentedCloud_->addValidSegments(clusterIndices, *cloudWithNormals);
-    //     segmentedCloud->addValidSegments(clusterIndices, extractedCloud);
-    //     printf("Segmented successfully\n");
-
-    //     pcl::PointCloud<PointType>::Ptr outPcl (new pcl::PointCloud<PointType>);
-
-    //     for (auto seg : segmentedCloud->validSegments)
-    //     {
-    //         *outPcl += seg.second.cloud;
-    //     }
-
-    //     printf("outPcl size: %d\n", (int)outPcl->points.size());
-        
-    //     sensor_msgs::PointCloud2 outCloud;
-    //     pcl::toROSMsg(*outPcl, outCloud);
-    //     outCloud.header.stamp = cloudHeader.stamp;
-    //     outCloud.header.frame_id = "vins_body_ros";
-    //     pubSegmentedCloud.publish(outCloud);
-        
-    // }
 };
 
 

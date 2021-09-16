@@ -5,6 +5,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/ml/ml.hpp>
 
+
 #include "segmatch/common.hpp"
 #include "segmatch/parameters.hpp"
 #include "segmatch/segmented_cloud.hpp"
@@ -44,11 +45,13 @@ class OpenCvRandomForest {
   void normalizeEigenFeatures(Eigen::MatrixXf* f);
 
  private:
-  #if (CV_MAJOR_VERSION >= 3)
-    RTrees rtrees_;
-  #else
-    CvRTrees rtrees_;
-  #endif
+  // #if (CV_MAJOR_VERSION >= 3)
+  //   RTrees rtrees_;
+  // #else
+  //   CvRTrees rtrees_;
+  // #endif
+
+  CvRTrees rtrees_;
 
   std::vector<Id> target_segment_ids_;
   std::vector<PclPoint> target_segment_centroids_;

@@ -322,10 +322,7 @@ PairwiseMatches OpenCvRandomForest::findCandidates(
     }
   }
 
-  clock.takeTime();
-  LOG(INFO)<< "Found " << candidates.size() << " candidates in "
-  << clock.getRealTime() << "ms with " << time_in_compute_distance <<
-  " ms in computing distance." << std::endl;
+  LOG(INFO)<< "Found " << candidates.size() << " candidates in " << std::endl;
   return candidates;
 }
 
