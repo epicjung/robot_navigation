@@ -4,6 +4,5 @@
 
     <!--- Run Rviz-->
     <node pkg="rviz" type="rviz" name="$(arg project)_rviz" args="-d $(find lvi_sam)/launch/include/config/rviz.rviz" />
-    <!-- <node pkg="rviz" type="rviz" name="$(arg project)_rviz" args="-d $(find lvi_sam)/launch/include/config/mvsec.rviz" /> -->
 
 </launch>

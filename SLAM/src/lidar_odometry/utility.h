@@ -30,10 +30,6 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/crop_box.h> 
 #include <pcl_conversions/pcl_conversions.h>
-#include <pcl/segmentation/extract_clusters.h>
-#include <pcl/search/search.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/common/impl/io.hpp>
 
 #include <tf/LinearMath/Quaternion.h>
 #include <tf/transform_listener.h>
@@ -57,14 +53,10 @@
 #include <array>
 #include <thread>
 #include <mutex>
-#include <unordered_map>
-
-#include "../visual_odometry/visual_estimator/utility/tic_toc.h"
 
 using namespace std;
 
 typedef pcl::PointXYZI PointType;
-typedef pcl::PointXYZLNormal PointType2;
 
 class ParamServer
 {

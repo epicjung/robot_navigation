@@ -17,9 +17,9 @@ align_camera_lidar_estimation: 0 # align camera and lidar estimation for visuali
 lidar_to_cam_tx: -0.13
 lidar_to_cam_ty: -0.02
 lidar_to_cam_tz: -0.18
-lidar_to_cam_rx: 0.0
-lidar_to_cam_ry: -1.5707963
-lidar_to_cam_rz: 1.5707963
+lidar_to_cam_rx: -1.570793
+lidar_to_cam_ry: 0
+lidar_to_cam_rz: -1.5707963
 
 # lidar to imu extrinsic 
 lidar_to_imu_tx: -0.3787
@@ -91,8 +91,8 @@ extrinsicTranslation: !!opencv-matrix
 #    data: [0.0, 0.2539, -0.4681] 
 
 #feature traker paprameters
-max_cnt: 150            # max feature number in feature tracking
-min_dist: 7            # min distance between two features 
+max_cnt: 50            # max feature number in feature tracking
+min_dist: 10            # min distance between two features 
 freq: 0                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
 F_threshold: 1.0        # ransac threshold (pixel)
 show_track: 1           # publish tracking image as topic

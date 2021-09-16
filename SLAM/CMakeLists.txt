@@ -58,7 +58,6 @@ generate_messages(
 ### Catkin
 ######################
 catkin_package(
-    INCLUDE_DIRS
     DEPENDS PCL GTSAM
 )
 
@@ -69,7 +68,6 @@ include_directories(
     ${CERES_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${GTSAM_INCLUDE_DIR}
-    src/tools/GMM
 )
 
 link_directories(
@@ -77,9 +75,6 @@ link_directories(
     ${OpenCV_LIBRARY_DIRS}
     ${GTSAM_LIBRARY_DIRS}
 )
-
-set(HEADER_FILES src/tools/GMM/GMM.h src/tools/GMM/Matrix.h src/tools/GMM/Kmeans.h)
-set(gmm_library src/tools/GMM/GMM.cpp src/tools/GMM/Kmeans.cpp  src/tools/GMM/Matrix.cpp ${HEADER_FILES})
 
 ######################
 ### visual odometry
@@ -133,8 +128,3 @@ add_executable(${PROJECT_NAME}_mapOptmization src/lidar_odometry/mapOptmization.
 add_dependencies(${PROJECT_NAME}_mapOptmization ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_compile_options(${PROJECT_NAME}_mapOptmization PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(${PROJECT_NAME}_mapOptmization PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${OpenMP_CXX_FLAGS} gtsam)
-
-add_executable(${PROJECT_NAME}_test src/lidar_odometry/test.cpp ${gmm_library})
-add_dependencies(${PROJECT_NAME}_test ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-
