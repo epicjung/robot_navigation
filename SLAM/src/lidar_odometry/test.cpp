@@ -397,7 +397,7 @@ public:
     void initializationValue()
     {
         depthCloud.reset(new pcl::PointCloud<PointType>());
-        numSectors = 18;
+        numSectors = 1;
         maxR = 100.0;
         maxZ = 1.5;
         FOV = 180.0;
