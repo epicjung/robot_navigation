@@ -1,7 +1,6 @@
 #include "utility.h"
 #include "lvi_sam/cloud_info.h"
 #include "GMM.h"
-#include "segmatch/matcher.hpp"
 
 struct Segment
 {
