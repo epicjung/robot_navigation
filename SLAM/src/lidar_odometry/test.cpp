@@ -2,12 +2,18 @@
 #include "lvi_sam/cloud_info.h"
 #include "GMM.h"
 
+int LIDAR_SKIP = 3;
+
+
 struct Segment
 {
-    Segment() {}
+    Segment() {
+        staticProb = 0.0;
+    }
     void clear() {
         cloud.clear();
         normals.clear();
+        staticProb = 0.0;
     }
 
     void calculateCentroid()
@@ -44,6 +50,7 @@ struct Segment
     double meanR;
     double meanTheta;
     double meanZ;
+    double staticProb;
 };
 
 // class SegmentedCloud
@@ -231,6 +238,37 @@ struct RayMap
         }
     }
 
+    void setGaussianModel(int sectorId, vector<Segment> segmentsToAdd)
+    {
+        TicToc tic_toc;
+        int dataDim = 3;
+        int numGauss = (int) segmentsToAdd.size();
+        gaussianMixtureModels.at(sectorId)->SetParameter("diagonal", dataDim, numGauss); 
+        pcl::PointCloud<PointType2>::Ptr segmentCloud(new pcl::PointCloud<PointType2>);
+        for (int i = 0; i < numGauss; ++i)
+        {
+            // set means
+            gaussianMixtureModels.at(sectorId)->mean[i][0] = segmentsToAdd[i].meanR;
+            gaussianMixtureModels.at(sectorId)->mean[i][1] = segmentsToAdd[i].meanTheta;
+            gaussianMixtureModels.at(sectorId)->mean[i][2] = segmentsToAdd[i].meanZ;
+            gaussianMixtureModels.at(sectorId)->weight[i] = 1.0 / numGauss;           
+
+            for (auto &pt : segmentsToAdd[i].cloud)
+            {
+                // set covariances
+                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][0] += (pt.normal_x - gaussianMixtureModels.at(sectorId)->mean[i][0])*(pt.normal_x - gaussianMixtureModels.at(sectorId)->mean[i][0]);
+                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][1] += (pt.normal_y - gaussianMixtureModels.at(sectorId)->mean[i][1])*(pt.normal_y - gaussianMixtureModels.at(sectorId)->mean[i][1]);
+                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][2] += (pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2])*(pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2]);                
+            }
+            gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][0] /= segmentsToAdd[i].cloud.size();
+            gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][1] /= segmentsToAdd[i].cloud.size();
+            gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][2] /= segmentsToAdd[i].cloud.size();
+
+            // printf("setGaussain: %d mean: %f; %f; %f\n", i, segmentsToAdd[i].meanR*cos(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanR*sin(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanZ);
+        }
+        printf("Gaussian Model Time: %f\n", tic_toc.toc());
+    }
+
     void setGaussianMixtureModel(int sectorId, vector<Segment> segmentsToAdd)
     {
         TicToc tic_toc;
@@ -253,7 +291,9 @@ struct RayMap
             for (int j = 0; j < dataDim; j++){
                 gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][j] = 1;
             }
+            printf("setGaussain: %d mean: %f; %f; %f\n", i, segmentsToAdd[i].meanR*cos(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanR*sin(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanZ);
         }
+
         
         // set data
         int numData = (int) sectorCloud->points.size();
@@ -274,7 +314,7 @@ struct RayMap
             double log_likelihood = gaussianMixtureModels.at(sectorId)->Expectaion_Maximization(numData, data);
             // if ((i + 1) % 10 == 0) printf("%d	%lf\n", i + 1, log_likelihood);
         }
-        printf("Guassian Model Time: %f\n", tic_toc.toc());
+        printf("Gaussian Model Time: %f\n", tic_toc.toc());
     }
 
     void addSegments(int sectorId, std::vector<pcl::PointIndices> segments, pcl::PointCloud<PointType>::Ptr refCloud)
@@ -303,8 +343,10 @@ struct RayMap
             segmentsToAdd.push_back(segment);
         }
         validSegments.insert(make_pair(sectorId, segmentsToAdd));
-        if (type_ == GLOBAL)
-            setGaussianMixtureModel(sectorId, segmentsToAdd);
+        // if (type_ == GLOBAL) {
+            setGaussianModel(sectorId, segmentsToAdd);
+            // setGaussianMixtureModel(sectorId, segmentsToAdd);
+        // }
     }
 
     void init(int numSectors, double FOV, double maxR, double maxZ, Type type)
@@ -413,7 +455,6 @@ public:
         sensor_msgs::PointCloud2 segmentedCloud;
         sensor_msgs::PointCloud2 centroidCloud;
 
-
         visualization_msgs::MarkerArray ids;
 
         for (const auto segs : raymap.validSegments)
@@ -429,12 +470,21 @@ public:
                 centroid.x = seg.meanR * cos(seg.meanTheta);
                 centroid.y = seg.meanR * sin(seg.meanTheta);
                 centroid.z = seg.meanZ;
+
+                // if (raymap.getType() == GLOBAL)
+                //     printf("Publish: %d mean: %f; %f; %f\n", i, centroid.x,  centroid.y, centroid.z);
+
                 centroid.intensity = 100.0;
                 centroids->points.emplace_back(centroid);
                 
+                std::ostringstream stream;
+                stream.precision(3);
+                stream << seg.segmentId << ": " << seg.staticProb;
+                std::string new_string = stream.str();
+
                 visualization_msgs::Marker text;
                 text.header.frame_id = "base_link";
-                text.scale.z = 1.0;
+                text.scale.z = 0.5;
                 text.color.r = 1.0;
                 text.color.g = 1.0;
                 text.color.b = 1.0;
@@ -442,7 +492,7 @@ public:
                 text.action = 0;
                 text.type = 9; // TEXT_VIEW_FACING
                 text.id = seg.segmentId;
-                text.text = to_string(seg.segmentId);
+                text.text = new_string;
                 text.pose.position.x = centroid.x;
                 text.pose.position.y = centroid.y;
                 text.pose.position.z = centroid.z;
@@ -471,13 +521,112 @@ public:
             thisPubCentroid->publish(centroidCloud);
     }
 
+    void inference2()
+    {
+        TicToc tic_toc;
+        for (int i = 0; i < numSectors; ++i)
+        {
+            printf("-----------------------------------Sector %d\n", i);
+            Gaussian_Mixture_Model global_gmm = *globalRayMap.gaussianMixtureModels[i];
+            Gaussian_Mixture_Model local_gmm = *localRayMap.gaussianMixtureModels[i];
+            printf("number of curr gaussian: %d\n", local_gmm.number_gaussian_components);
+            printf("number of prev gaussian: %d\n", global_gmm.number_gaussian_components);
+            if (global_gmm.number_gaussian_components == 0) // Case III or IV: no GMM model in the prev. frames
+            {
+
+            }
+            else // Case I or II: GMM model exists in the prev. frames
+            {
+                if (localRayMap.validSegments[i].size() > 0) // Case I: current frame data & GMM model
+                {
+                    for (auto &seg : localRayMap.validSegments[i])
+                    {
+                        printf("-------------------------------------Segment\n");
+                        // // 1. set data (entire segment)
+                        // int numData = seg.cloud.points.size();
+                        // double **data = new double*[numData];
+                        // std::vector<double> prev_likelihoods;
+                        // std::vector<double> curr_likelihoods;
+                        // double max_prev_likelihood;
+                        // double max_curr_likelihood;
+
+                        // for (int k = 0; k < global_gmm.number_gaussian_components; ++k)
+                        // {
+                        //     double likelihood = 0.0;
+                        //     for (int j = 0; j < numData; ++j)
+                        //     {
+                        //         data[j] = new double[3];
+                        //         data[j][0] = (double)seg.cloud.points[j].normal_x;
+                        //         data[j][1] = (double)seg.cloud.points[j].normal_y;
+                        //         data[j][2] = (double)seg.cloud.points[j].normal_z; 
+                        //         likelihood += global_gmm.Gaussian_Distribution(data[j], k);
+                        //     }
+                        //     prev_likelihoods.push_back(likelihood);
+                        // }
+
+                        // for (int k = 0; k < local_gmm.number_gaussian_components; ++k)
+                        // {
+                        //     double likelihood = 0.0;
+                        //     for (int j = 0; j < numData; ++j)
+                        //     {
+                        //         data[j] = new double[3];
+                        //         data[j][0] = (double)seg.cloud.points[j].normal_x;
+                        //         data[j][1] = (double)seg.cloud.points[j].normal_y;
+                        //         data[j][2] = (double)seg.cloud.points[j].normal_z; 
+                        //         likelihood += local_gmm.Gaussian_Distribution(data[j], k);
+                        //     }
+                        //     curr_likelihoods.push_back(likelihood);
+                        // }
+                        // end
+
+                        // 2. set data (centroid only)
+                        double likelihood = 0.0;
+                        int numData = 1;
+                        double **data = new double*[numData];
+                        data[0] = new double[3];
+                        data[0][0] = seg.meanR;
+                        data[0][1] = seg.meanTheta;
+                        data[0][2] = seg.meanZ;
+                        std::vector<double> prev_likelihoods;
+                        std::vector<double> curr_likelihoods;
+                        double max_prev_likelihood;
+                        double max_curr_likelihood;
+                        for (int k = 0; k < global_gmm.number_gaussian_components; ++k)
+                        {
+                            prev_likelihoods.push_back(global_gmm.Gaussian_Distribution(data[0], k));
+                        }
+                        for (int k = 0; k < local_gmm.number_gaussian_components; ++k)
+                        {
+                            curr_likelihoods.push_back(local_gmm.Gaussian_Distribution(data[0], k));
+                        }
+                        // end
+
+                        max_prev_likelihood = *max_element(prev_likelihoods.begin(), prev_likelihoods.end());
+                        max_curr_likelihood = *max_element(curr_likelihoods.begin(), curr_likelihoods.end());
+                        double dynamic_likelihood = abs(max_prev_likelihood - max_curr_likelihood);
+                        double static_likelihood = max_prev_likelihood;
+                        double static_prob = static_likelihood / (dynamic_likelihood + static_likelihood);
+                        seg.staticProb = static_prob;
+                        printf("Seg %d: %f %f %f\n", seg.segmentId, max_prev_likelihood, max_curr_likelihood, static_prob);
+                    }
+                } 
+                else // Case II: no current frame data but GMM model 
+                {
+
+                }
+            }
+        }
+        printf("Inference Time: %f\n", tic_toc.toc());   
+    }
+
     void inference()
     {
         TicToc tic_toc;
         for (int i = 0; i < numSectors; ++i)
         {
-            printf("Sector %d\n", i);
+            printf("-----------------------------------Sector %d\n", i);
             Gaussian_Mixture_Model gmm = *globalRayMap.gaussianMixtureModels[i];
+            printf("number of gaussian: %d\n", gmm.number_gaussian_components);
             if (gmm.number_gaussian_components == 0) // Case III or IV: no GMM model in the prev. frames
             {
 
@@ -488,22 +637,37 @@ public:
                 {
                     for (const auto seg : localRayMap.validSegments[i])
                     {
-                        // set data
+                        printf("-------------------------------------Segment\n");
+                        // // set data (entire segment)
+                        // double likelihood = 0.0;
+                        // int numData = seg.cloud.points.size();
+                        // double **data = new double*[numData];
+                        // for (int j = 0; j < numData; ++j)
+                        // {
+                        //     data[j] = new double[3];
+                        //     data[j][0] = (double)seg.cloud.points[j].normal_x;
+                        //     data[j][1] = (double)seg.cloud.points[j].normal_y;
+                        //     data[j][2] = (double)seg.cloud.points[j].normal_z;
+                        //     for (int k = 0; k < gmm.number_gaussian_components; ++k)
+                        //     {
+                        //         likelihood += gmm.Gaussian_Distribution(data[j], k);
+                        //     }
+                        //     // likelihood += gmm.Calculate_Likelihood(data[j]);
+                        // }
+
+                        // set data (centroid only)
                         double likelihood = 0.0;
-                        int numData = seg.cloud.points.size();
+                        int numData = 1;
                         double **data = new double*[numData];
-                        for (int j = 0; j < numData; ++j)
+                        data[0] = new double[3];
+                        data[0][0] = seg.meanR;
+                        data[0][1] = seg.meanTheta;
+                        data[0][2] = seg.meanZ;
+                        for (int k = 0; k < gmm.number_gaussian_components; ++k)
                         {
-                            data[j] = new double[3];
-                            data[j][0] = (double)seg.cloud.points[j].normal_x;
-                            data[j][1] = (double)seg.cloud.points[j].normal_y;
-                            data[j][2] = (double)seg.cloud.points[j].normal_z;
-                            for (int k = 0; k < gmm.number_gaussian_components; ++k)
-                            {
-                                likelihood += gmm.Gaussian_Distribution(data[j], k);
-                            }
-                            // likelihood += gmm.Calculate_Likelihood(data[j]);
+                            likelihood += gmm.Gaussian_Distribution(data[0], k);
                         }
+
                         printf("Seg %d: %f\n", seg.segmentId, likelihood);
                     }
                 } 
@@ -523,6 +687,10 @@ public:
 
     void cloudHandler(const sensor_msgs::PointCloud2::ConstPtr &msgIn)
     {
+        static int lidar_count = -1;
+        if (++lidar_count % (LIDAR_SKIP+1) != 0)
+            return;
+
         pubRayMap.publish(rayMapVisualization);
         // 0. listen to transform
         static tf::TransformListener listener;
@@ -572,13 +740,14 @@ public:
         
         if (cloudQueue.size() > 0)
         {
+            cloudQueue.clear();
             // 4.1 create ray map
             pcl::PointCloud<PointType>::Ptr laserCloudLocal(new pcl::PointCloud<PointType>());
             pcl::transformPointCloud(*depthCloud, *laserCloudLocal, transNow.inverse());
             publishCloud(&pubGlobalMap, laserCloudLocal, cloudHeader.stamp, "base_link");
             localRayMap.setRayMap(laserCloudIn);
             globalRayMap.setRayMap(laserCloudLocal);
-            inference();
+            inference2();
             publishSegmentedCloud(&pubSegmentedCloudLocal, &pubCentroidCloudLocal, localRayMap, cloudHeader.stamp, "base_link");
             publishSegmentedCloud(&pubSegmentedCloudGlobal, &pubCentroidCloudGlobal, globalRayMap, cloudHeader.stamp, "base_link");
         }
@@ -592,17 +761,17 @@ public:
         cloudQueue.push_back(*laserCloudGlobal);
         timeQueue.push_back(timeScanCur);
 
-        // 7. pop old cloud
-        while (!timeQueue.empty())
-        {
-            if (timeScanCur - timeQueue.front() > 0.3)
-            {
-                cloudQueue.pop_front();
-                timeQueue.pop_front();
-            } else {
-                break;
-            }
-        }
+        // // 7. pop old cloud
+        // while (!timeQueue.empty())
+        // {
+        //     if (timeScanCur - timeQueue.front() > 0.3)
+        //     {
+        //         cloudQueue.pop_front();
+        //         timeQueue.pop_front();
+        //     } else {
+        //         break;
+        //     }
+        // }
         printf("cloudQueue size: %d\n", (int)cloudQueue.size());
         std::lock_guard<std::mutex> lock(mtxCloud);
         {

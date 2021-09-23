@@ -15,7 +15,6 @@ Panels:
         - /Odometry1
         - /test_clouds1
         - /GPS1
-        - /Segmatcher1
         - /Segmatcher1/Non_ground1
         - /Segmatcher1/Matched1
       Splitter Ratio: 0.569299578666687
@@ -951,7 +950,7 @@ Visualization Manager:
           Marker Topic: /lvi_sam/lidar/raymap
           Name: Raymap
           Namespaces:
-            {}
+            "": true
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
@@ -1112,7 +1111,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: false
-      Enabled: false
+      Enabled: true
       Name: RayMap
     - Class: rviz/Group
       Displays:
@@ -1296,7 +1295,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
-      Enabled: true
+      Enabled: false
       Name: Segmatcher
     - Class: rviz/Group
       Displays:
@@ -1488,7 +1487,7 @@ Visualization Manager:
             {}
           Queue Size: 100
           Value: true
-      Enabled: true
+      Enabled: false
       Name: MOT
     - Alpha: 0.5
       Cell Size: 1
@@ -1523,7 +1522,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 36.303977966308594
+      Distance: 57.12500762939453
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
