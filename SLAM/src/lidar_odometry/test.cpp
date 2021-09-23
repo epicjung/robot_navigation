@@ -147,6 +147,8 @@ struct RayMap
     double maxZ_;
     double thetaRes_;
     int segIdCurr_;
+    double FOV_;
+    double radialStd = 0.05;
     
     float xy2theta(const float &x, const float &y)
     {
@@ -179,8 +181,8 @@ struct RayMap
             origin.y = 0.0;
             origin.z = 0.0;
             geometry_msgs::Point endpoint;
-            endpoint.x = 20.0 * cos(thetaRes_ * i - M_PI / 2.0);
-            endpoint.y = 20.0 * sin(thetaRes_ * i - M_PI / 2.0);
+            endpoint.x = 20.0 * cos(thetaRes_ * i - FOV_ / 2.0);
+            endpoint.y = 20.0 * sin(thetaRes_ * i - FOV_ / 2.0);
             endpoint.z = 0.0; 
             lines.points.push_back(origin);
             lines.points.push_back(endpoint);
@@ -215,9 +217,9 @@ struct RayMap
         {
             double radius = xy2radius(pt.x, pt.y);
             double theta = xy2theta(pt.x, pt.y);
-            if (radius <= maxR_ && pt.z <= maxZ_ && abs(theta) <= M_PI / 2.0)
+            if (radius <= maxR_ && pt.z <= maxZ_ && abs(theta) <= FOV_ / 2.0)
             {
-                int sectorId = min(static_cast<int>((theta + M_PI / 2.0) / thetaRes_), numSectors_ - 1);
+                int sectorId = min(static_cast<int>((theta + FOV_ / 2.0) / thetaRes_), numSectors_ - 1);
                 // pt.intensity = static_cast<float>(sectorId + 1); 
                 sectors.at(sectorId)->points.push_back(pt);
             }
@@ -250,21 +252,35 @@ struct RayMap
             // set means
             gaussianMixtureModels.at(sectorId)->mean[i][0] = segmentsToAdd[i].meanR;
             gaussianMixtureModels.at(sectorId)->mean[i][1] = segmentsToAdd[i].meanTheta;
-            gaussianMixtureModels.at(sectorId)->mean[i][2] = segmentsToAdd[i].meanZ;
-            gaussianMixtureModels.at(sectorId)->weight[i] = 1.0 / numGauss;           
+            // gaussianMixtureModels.at(sectorId)->mean[i][2] = segmentsToAdd[i].meanZ;
+            gaussianMixtureModels.at(sectorId)->weight[i] = 1.0 / numGauss;
+
+            for (int k = 0; k < dataDim; ++k)
+            {
+                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][k] = 0.0;           
+            }
 
             for (auto &pt : segmentsToAdd[i].cloud)
             {
                 // set covariances
-                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][0] += (pt.normal_x - gaussianMixtureModels.at(sectorId)->mean[i][0])*(pt.normal_x - gaussianMixtureModels.at(sectorId)->mean[i][0]);
-                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][1] += (pt.normal_y - gaussianMixtureModels.at(sectorId)->mean[i][1])*(pt.normal_y - gaussianMixtureModels.at(sectorId)->mean[i][1]);
-                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][2] += (pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2])*(pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2]);                
+                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][0] += ((pt.normal_x - gaussianMixtureModels.at(sectorId)->mean[i][0])*(pt.normal_x - gaussianMixtureModels.at(sectorId)->mean[i][0])) + radialStd * radialStd;
+                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][1] += ((pt.normal_y - gaussianMixtureModels.at(sectorId)->mean[i][1])*(pt.normal_y - gaussianMixtureModels.at(sectorId)->mean[i][1]));
+                gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][2] += ((pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2])*(pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2]));                
             }
             gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][0] /= segmentsToAdd[i].cloud.size();
             gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][1] /= segmentsToAdd[i].cloud.size();
             gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][2] /= segmentsToAdd[i].cloud.size();
 
-            // printf("setGaussain: %d mean: %f; %f; %f\n", i, segmentsToAdd[i].meanR*cos(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanR*sin(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanZ);
+            // if (gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][2] < 0)
+            // {
+            //     printf("diag_cov: %f\n", gaussianMixtureModels.at(sectorId)->diagonal_covariance[i][2]);
+            //     for (auto &pt : segmentsToAdd[i].cloud)
+            //     {
+            //         printf("z: %f, mean: %f cov: %f\n", pt.normal_z, gaussianMixtureModels.at(sectorId)->mean[i][2], ((pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2])*(pt.normal_z - gaussianMixtureModels.at(sectorId)->mean[i][2])));
+            //     }
+            // }
+                    // printf("setGaussain: %d mean: %f; %f; %f\n", i, segmentsToAdd[i].meanR*cos(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanR*sin(segmentsToAdd[i].meanTheta), segmentsToAdd[i].meanZ);
+
         }
         printf("Gaussian Model Time: %f\n", tic_toc.toc());
     }
@@ -356,7 +372,8 @@ struct RayMap
         maxR_ = maxR;
         maxZ_ = maxZ;
         type_ = type;
-        thetaRes_ = FOV / numSectors * (M_PI / 180.0); // [rad]
+        FOV_ = FOV * (M_PI / 180.0);
+        thetaRes_ = FOV_ / numSectors; // [rad]
         
         gaussianMixtureModels.reserve(numSectors);
         sectors.reserve(numSectors);
@@ -369,9 +386,9 @@ struct RayMap
         }
 
         kdTree_.reset(new pcl::search::KdTree<PointType>());
-        clusterExtractor_.setClusterTolerance(0.5);
+        clusterExtractor_.setClusterTolerance(1.0);
         clusterExtractor_.setMinClusterSize(5);
-        clusterExtractor_.setMaxClusterSize(1000);
+        clusterExtractor_.setMaxClusterSize(3000);
         clusterExtractor_.setSearchMethod(kdTree_);
     }
 
@@ -441,7 +458,7 @@ public:
         numSectors = 1;
         maxR = 100.0;
         maxZ = 1.5;
-        FOV = 180.0;
+        FOV = 180.0; // [deg]
         localRayMap.init(numSectors, FOV, maxR, maxZ, LOCAL);
         globalRayMap.init(numSectors, FOV, maxR, maxZ, GLOBAL);
         rayMapVisualization = localRayMap.getRayMap();
@@ -561,6 +578,7 @@ public:
                         //         data[j][2] = (double)seg.cloud.points[j].normal_z; 
                         //         likelihood += global_gmm.Gaussian_Distribution(data[j], k);
                         //     }
+                        //     // printf("Previous k: %d, likelihood: %f\n", k, likelihood);
                         //     prev_likelihoods.push_back(likelihood);
                         // }
 
@@ -575,15 +593,17 @@ public:
                         //         data[j][2] = (double)seg.cloud.points[j].normal_z; 
                         //         likelihood += local_gmm.Gaussian_Distribution(data[j], k);
                         //     }
+                        //     // printf("Current k: %d, likelihood: %f\n", k, likelihood);
                         //     curr_likelihoods.push_back(likelihood);
                         // }
-                        // end
+                        // // end
 
                         // 2. set data (centroid only)
                         double likelihood = 0.0;
                         int numData = 1;
                         double **data = new double*[numData];
                         data[0] = new double[3];
+                        // data[0] = new double[2];
                         data[0][0] = seg.meanR;
                         data[0][1] = seg.meanTheta;
                         data[0][2] = seg.meanZ;
@@ -729,7 +749,7 @@ public:
         for (int i = 0; i < (int)laserCloudIn->size(); ++i)
         {
             PointType p = laserCloudIn->points[i];
-            if (p.x >= 0 && abs(p.y / p.x) <= 10 && abs(p.z / p.x) <= 10)
+            // if (p.x >= 0 && abs(p.y / p.x) <= 10 && abs(p.z / p.x) <= 10)
                 laserCloudInFilter->push_back(p);
         }
         *laserCloudIn = *laserCloudInFilter;

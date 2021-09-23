@@ -361,7 +361,7 @@ double Gaussian_Mixture_Model::Gaussian_Distribution(double data[], double mean[
 	double determinant = 1;
 	double result;
 	double sum = 0;
-
+	// printf("mean: %f %f %f, cov: %f %f %f\n", mean[0], mean[1], mean[2], diagonal_covariance[0], diagonal_covariance[1], diagonal_covariance[2]);
 	for (int i = 0; i < dimension_data; i++){
 		determinant *= diagonal_covariance[i];
 		sum += (data[i] - mean[i]) * (1 / diagonal_covariance[i]) * (data[i] - mean[i]);
