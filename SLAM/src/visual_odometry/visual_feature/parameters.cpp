@@ -31,6 +31,7 @@ double L_C_RZ;
 int USE_LIDAR;
 int LIDAR_SKIP;
 
+int REMOVE_DYNAMIC;
 
 void readParameters(ros::NodeHandle &n)
 {
@@ -72,6 +73,8 @@ void readParameters(ros::NodeHandle &n)
     L_C_RY = fsSettings["lidar_to_cam_ry"];
     L_C_RZ = fsSettings["lidar_to_cam_rz"];
 
+    REMOVE_DYNAMIC = fsSettings["remove_dynamic"];
+
     // fisheye mask
     FISHEYE = fsSettings["fisheye"];
     if (FISHEYE == 1)
@@ -96,17 +99,28 @@ void readParameters(ros::NodeHandle &n)
     usleep(100);
 }
 
-float pointDistance(PointType p)
-{
-    return sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
-}
+// float pointDistance(PointType p)
+// {
+//     return sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+// }
 
-float pointDistance(PointType p1, PointType p2)
-{
-    return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z));
-}
+// float pointDistance(PointType p1, PointType p2)
+// {
+//     return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z));
+// }
 
 void publishCloud(ros::Publisher *thisPub, pcl::PointCloud<PointType>::Ptr thisCloud, ros::Time thisStamp, std::string thisFrame)
+{
+    if (thisPub->getNumSubscribers() == 0)
+        return;
+    sensor_msgs::PointCloud2 tempCloud;
+    pcl::toROSMsg(*thisCloud, tempCloud);
+    tempCloud.header.stamp = thisStamp;
+    tempCloud.header.frame_id = thisFrame;
+    thisPub->publish(tempCloud); 
+}
+
+void publishCloud(ros::Publisher *thisPub, pcl::PointCloud<PointType2>::Ptr thisCloud, ros::Time thisStamp, std::string thisFrame)
 {
     if (thisPub->getNumSubscribers() == 0)
         return;

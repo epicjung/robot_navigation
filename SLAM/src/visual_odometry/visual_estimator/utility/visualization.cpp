@@ -4,7 +4,7 @@ using namespace ros;
 using namespace Eigen;
 ros::Publisher pub_odometry, pub_latest_odometry, pub_latest_odometry_ros, pub_latest_odometry_test;
 ros::Publisher pub_path;
-ros::Publisher pub_point_cloud, pub_margin_cloud;
+ros::Publisher pub_point_cloud, pub_margin_cloud, pub_point_ids;
 ros::Publisher pub_key_poses;
 ros::Publisher pub_camera_pose;
 ros::Publisher pub_camera_pose_visual;
@@ -27,6 +27,7 @@ void registerPub(ros::NodeHandle &n)
     pub_path                = n.advertise<nav_msgs::Path>                   (PROJECT_NAME + "/vins/odometry/path", 1000);
     pub_odometry            = n.advertise<nav_msgs::Odometry>               (PROJECT_NAME + "/vins/odometry/odometry", 1000);
     pub_point_cloud         = n.advertise<sensor_msgs::PointCloud>          (PROJECT_NAME + "/vins/odometry/point_cloud", 1000);
+    pub_point_ids           = n.advertise<visualization_msgs::MarkerArray>  (PROJECT_NAME + "/vins/odometry/point_ids", 1000);
     pub_margin_cloud        = n.advertise<sensor_msgs::PointCloud>          (PROJECT_NAME + "/vins/odometry/history_cloud", 1000);
     pub_key_poses           = n.advertise<visualization_msgs::Marker>       (PROJECT_NAME + "/vins/odometry/key_poses", 1000);
     pub_camera_pose         = n.advertise<nav_msgs::Odometry>               (PROJECT_NAME + "/vins/odometry/camera_pose", 1000);
@@ -290,6 +291,8 @@ void pubCameraPose(const Estimator &estimator, const std_msgs::Header &header)
 
 void pubPointCloud(const Estimator &estimator, const std_msgs::Header &header)
 {
+    visualization_msgs::MarkerArray ids;
+
     if (pub_point_cloud.getNumSubscribers() != 0)
     {
         sensor_msgs::PointCloud point_cloud;
@@ -298,7 +301,7 @@ void pubPointCloud(const Estimator &estimator, const std_msgs::Header &header)
 
         sensor_msgs::ChannelFloat32 intensity_channel;
         intensity_channel.name = "intensity";
-
+        int id = 0;
         for (auto &it_per_id : estimator.f_manager.feature)
         {
             int used_num;
@@ -322,10 +325,32 @@ void pubPointCloud(const Estimator &estimator, const std_msgs::Header &header)
                 intensity_channel.values.push_back(0);
             else
                 intensity_channel.values.push_back(1);
-        }
+            
+            std::ostringstream stream;
+            stream << it_per_id.feature_id;
+            std::string new_string = stream.str();
 
+            visualization_msgs::Marker text;
+            text.header.frame_id = "vins_world";
+            text.scale.z = 0.5;
+            text.color.r = 1.0;
+            text.color.g = 1.0;
+            text.color.b = 1.0;
+            text.color.a = 1.0;
+            text.action = 0;
+            text.type = 9; // TEXT_VIEW_FACING
+            text.id = id;
+            text.text = new_string;
+            text.pose.position.x = p.x;
+            text.pose.position.y = p.y;
+            text.pose.position.z = p.z;
+            text.pose.orientation.w = 1.0;
+            ids.markers.push_back(text);
+            id++;
+        }
         point_cloud.channels.push_back(intensity_channel);
         pub_point_cloud.publish(point_cloud);
+        pub_point_ids.publish(ids);
     }
     
     // pub margined potin

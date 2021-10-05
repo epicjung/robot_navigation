@@ -267,7 +267,7 @@ void process()
 
             // 2. VINS Optimization
             // TicToc t_s;
-            map<int, vector<pair<int, Eigen::Matrix<double, 8, 1>>>> image;
+            map<int, vector<pair<int, Eigen::Matrix<double, 9, 1>>>> image;
             for (unsigned int i = 0; i < img_msg->points.size(); i++)
             {
                 int v = img_msg->channels[0].values[i] + 0.5;
@@ -281,11 +281,12 @@ void process()
                 double velocity_x = img_msg->channels[3].values[i];
                 double velocity_y = img_msg->channels[4].values[i];
                 double depth = img_msg->channels[5].values[i];
+                double prob = img_msg->channels[6].values[i];
 
                 ROS_ASSERT(z == 1);
-                Eigen::Matrix<double, 8, 1> xyz_uv_velocity_depth;
-                xyz_uv_velocity_depth << x, y, z, p_u, p_v, velocity_x, velocity_y, depth;
-                image[feature_id].emplace_back(camera_id,  xyz_uv_velocity_depth);
+                Eigen::Matrix<double, 9, 1> xyz_uv_velocity_depth_prob;
+                xyz_uv_velocity_depth_prob << x, y, z, p_u, p_v, velocity_x, velocity_y, depth, prob;
+                image[feature_id].emplace_back(camera_id,  xyz_uv_velocity_depth_prob);
             }
 
             // Get initialization info from lidar odometry

@@ -33,7 +33,6 @@ double last_image_time = 0;
 bool init_pub = 0;
 
 
-
 void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
 {
     double cur_img_time = img_msg->header.stamp.toSec();
@@ -216,7 +215,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &img_msg)
                                 cv::circle(tmp_img, trackerData[i].cur_pts[j], 2, cv::Scalar(0, 0, 255), 1);
                         }
                     }
-                    cv::putText(tmp_img, to_string(trackerData[i].ids[j]), trackerData[i].cur_pts[j], cv::FONT_HERSHEY_COMPLEX_SMALL, 0.4, cv::Scalar(255, 0, 0));
+                    cv::putText(tmp_img, to_string(trackerData[i].ids[j]), trackerData[i].cur_pts[j], cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(255, 0, 0));
                 }
             }
 

@@ -162,12 +162,8 @@ public:
         if (!deskewInfo())
             return;
 
-        // printf("\033[1;35mInitial Guess\033[0m\n");
-        // printf("\033[1;35modom: %f %f %f %f %f %f\033[0m\n", cloudInfo.odomX, cloudInfo.odomY, cloudInfo.odomZ, cloudInfo.odomRoll, cloudInfo.odomPitch, cloudInfo.odomYaw);
-        // printf("\033[1;35mimu: %f %f %f\033[0m\n", cloudInfo.imuRollInit, cloudInfo.imuPitchInit, cloudInfo.imuYawInit);
-
         projectPointCloud();
-
+        
         cloudExtraction();
 
         publishClouds();
@@ -195,6 +191,46 @@ public:
         // convert cloud
         pcl::fromROSMsg(currentCloudMsg, *laserCloudIn);
 
+        // // rslidar
+        // float verticalAngle, horizonAngle, range;
+        // size_t rowInd, columnIdn, index, cloudSize;
+        // cloudSize = laserCloudIn->points.size();
+        // std::vector<float> angles{-25.0, -14.638, -10.281, -7.910, -6.424, -5.407, -4.667, -4.333, -4.000, -3.667, -3.333, -3.000, -2.667, -2.333, -2.000, -1.667, -1.333, -1.000, -0.667, -0.333, 0.000,
+        //                           0.333, 0.667, 1.000, 1.333, 1.667, 2.333, 3.333, 4.667, 7.000, 10.333, 15.000};
+
+        // for (pcl::PointCloud<PointXYZIRT>::iterator it = laserCloudIn->begin(); it != laserCloudIn->end(); it++)
+        // {
+        //     if (isnan(it->x) || isnan(it->y) || isnan(it->z))
+        //     {
+        //         laserCloudIn->erase(it);
+        //     }
+        //     else
+        //     {
+        //         PointXYZIRT thisPoint;
+        //         thisPoint.x = it->x;
+        //         thisPoint.y = it->y;
+        //         thisPoint.z = it->z;
+        //         verticalAngle = atan2(thisPoint.z, sqrt(thisPoint.x*thisPoint.x + thisPoint.y*thisPoint.y))*180/M_PI;
+        //         auto iter_geq = std::lower_bound(angles.begin(), angles.end(), verticalAngle);
+        //         if (iter_geq == angles.begin())
+        //         {
+        //             rowInd = 0;
+        //         }
+        //         else
+        //         {
+        //             float a = *(iter_geq - 1);
+        //             float b = *(iter_geq);
+        //             if (fabs(verticalAngle-a) < fabs(verticalAngle-b)){
+        //                 rowInd = iter_geq - angles.begin() - 1;
+        //             } else {
+        //                 rowInd = iter_geq - angles.begin();
+        //             }
+        //         }                    
+        //         it->ring = rowInd;
+        //     }
+        // }
+        // laserCloudIn->is_dense = true;
+
         // check dense flag
         if (laserCloudIn->is_dense == false)
         {
@@ -202,7 +238,7 @@ public:
             ros::shutdown();
         }
 
-        // check ring channel
+        // check ring channel (comment this for rslidar)
         static int ringFlag = 0;
         if (ringFlag == 0)
         {

@@ -4,9 +4,8 @@
 project_name: "lvi_sam"
 
 #common parameters
-imu_topic: "/imu/data"
-image_topic: "/image_proc_resize/image"
-# image_topic: "/camera/image"
+imu_topic: "/imu_raw"
+image_topic: "/camera/image"
 point_cloud_topic: "lvi_sam/lidar/deskew/cloud_deskewed"
 
 # Lidar Params
@@ -15,52 +14,38 @@ lidar_skip: 3                    # skip this amount of scans
 align_camera_lidar_estimation: 0 # align camera and lidar estimation for visualization
 
 # lidar to camera extrinsic (YPR = ZYX)
-lidar_to_cam_tx: -0.13
-lidar_to_cam_ty: -0.02
-lidar_to_cam_tz: -0.18
-lidar_to_cam_rx: -1.5707963
-lidar_to_cam_ry: 0.0
-lidar_to_cam_rz: -1.5707963
+lidar_to_cam_tx: 0.18499563388803192
+lidar_to_cam_ty: -0.024227446820327757
+lidar_to_cam_tz: -0.33589470159409335
+lidar_to_cam_rx: -1.5582452
+lidar_to_cam_ry: -0.0129322
+lidar_to_cam_rz: -1.5755292
 
 # lidar to imu extrinsic 
-lidar_to_imu_tx: -0.3787
+lidar_to_imu_tx: 0.0
 lidar_to_imu_ty: 0.0
-lidar_to_imu_tz: -0.6945
+lidar_to_imu_tz: 0.0762
 lidar_to_imu_rx: 0.0
 lidar_to_imu_ry: 0.0
-lidar_to_imu_rz: 0.0
+lidar_to_imu_rz: 1.5707963
 
 # camera model (new camera)
 model_type: PINHOLE
 camera_name: camera
 
 # Mono camera config
-image_width: 1152
-image_height: 648
+image_width: 2048
+image_height: 1536
 distortion_parameters:
    k1: 0.0
    k2: 0.0
    p1: 0.0
    p2: 0.0
 projection_parameters:
-   fx: 552.9366943359374
-   fy: 552.7549072265625
-   cx: 575.8479858398438
-   cy: 327.6668334960937
-
-# # Mono camera config
-# image_width: 1920
-# image_height: 1080
-# distortion_parameters:
-#    k1: 0.0
-#    k2: 0.0
-#    p1: 0.0
-#    p2: 0.0
-# projection_parameters:
-#    fx: 921.5611572265625
-#    fy: 921.2581787109375
-#    cx: 959.7466430664062
-#    cy: 546.1113891601562
+   fx: 1857.4752797615988
+   fy: 1869.2155909761746
+   cx: 1039.692658811044
+   cy: 739.3362262994145
 
 
 #imu parameters       The more accurate parameters you provide, the worse performance
@@ -79,38 +64,23 @@ extrinsicRotation: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [ 0, 0, 1, 
-           -1, 0, 0, 
-           0, -1, 0]
+   data: [ -0.9999,   -0.0130,   -0.0046,
+            0.0047,   -0.0125,   -0.9999,   
+            0.0129,   -0.9998,    0.0125]
 
 #Translation from camera frame to imu frame, imu^T_cam
 extrinsicTranslation: !!opencv-matrix
    rows: 3
    cols: 1
    dt: d
-   data: [0.4681, 0.0, 0.2539] 
-
-# # Rotation from imu frame to cam
-# extrinsicRotation: !!opencv-matrix
-#    rows: 3
-#    cols: 3
-#    dt: d
-#    data: [ 0, -1, 0, 
-#            0, 0, -1, 
-#            1, 0, 0]
-# # Translation from imu frame to cam
-# extrinsicTranslation: !!opencv-matrix
-#    rows: 3
-#    cols: 1
-#    dt: d
-#    data: [0.0, 0.2539, -0.4681] 
+   data: [-0.0242, -0.1850,  -0.4121] 
 
 #feature traker paprameters
 max_cnt: 150            # max feature number in feature tracking
-min_dist: 20            # min distance between two features 
+min_dist: 7            # min distance between two features 
 freq: 0                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
 F_threshold: 1.0        # ransac threshold (pixel)
-show_track: 0           # publish tracking image as topic
+show_track: 1           # publish tracking image as topic
 equalize: 1             # if image is too dark or light, trun on equalize to find enough features
 fisheye: 0              # if using fisheye, trun on it. A circle mask will be loaded to remove edge noisy points
 
@@ -135,6 +105,3 @@ debug_image: 0                      # save raw image in loop detector for visual
 match_image_scale: 0.5
 vocabulary_file: "/config/brief_k10L6.bin"
 brief_pattern_file: "/config/brief_pattern.yml"
-
-static_threshold: 0.8
-remove_dynamic: 0

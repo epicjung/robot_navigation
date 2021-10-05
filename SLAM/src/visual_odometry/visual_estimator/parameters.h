@@ -87,7 +87,7 @@ extern double ROW, COL;
 
 extern int USE_LIDAR;
 extern int ALIGN_CAMERA_LIDAR_COORDINATE;
-
+extern double STATIC_THRESHOLD;
 extern double L_I_TX;
 extern double L_I_TY;
 extern double L_I_TZ;

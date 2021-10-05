@@ -34,6 +34,8 @@ double L_I_RX;
 double L_I_RY;
 double L_I_RZ;
 
+double STATIC_THRESHOLD;
+
 void readParameters(ros::NodeHandle &n)
 {
     // Parse .yaml file for VINS
@@ -65,6 +67,8 @@ void readParameters(ros::NodeHandle &n)
     L_I_RX = fsSettings["lidar_to_imu_rx"];
     L_I_RY = fsSettings["lidar_to_imu_ry"];
     L_I_RZ = fsSettings["lidar_to_imu_rz"];
+
+    STATIC_THRESHOLD = fsSettings["static_threshold"];
 
     ACC_N = fsSettings["acc_n"];
     ACC_W = fsSettings["acc_w"];

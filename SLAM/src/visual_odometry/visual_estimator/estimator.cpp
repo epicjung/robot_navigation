@@ -115,7 +115,7 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
     gyr_0 = angular_velocity;
 }
 
-void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 8, 1>>>> &image, 
+void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 9, 1>>>> &image, 
                              const vector<float> &lidar_initialization_info,
                              const std_msgs::Header &header)
 {
@@ -575,6 +575,7 @@ void Estimator::vector2double()
     }
 
     VectorXd dep = f_manager.getDepthVector();
+    printf("VD: depth size: %d\n", (int)dep.size());
     for (int i = 0; i < f_manager.getFeatureCount(); i++)
         para_Feature[i][0] = dep(i);
     
@@ -703,6 +704,11 @@ void Estimator::optimization()
     ceres::LossFunction *loss_function;
     //loss_function = new ceres::HuberLoss(1.0);
     loss_function = new ceres::CauchyLoss(1.0);
+    
+    // euigon
+    std::vector<ceres::ResidualBlockId> residual_block_ids;
+    std::vector<int> feature_ids;
+
     for (int i = 0; i < WINDOW_SIZE + 1; i++)
     {
         ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
@@ -729,6 +735,7 @@ void Estimator::optimization()
         //problem.SetParameterBlockConstant(para_Td[0]);
     }
 
+    printf("Before optmization\n");
     vector2double();
 
     // marginalization residual
@@ -758,7 +765,13 @@ void Estimator::optimization()
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
- 
+
+        if (it_per_id.estimated_prob > 0.0 && it_per_id.estimated_prob < STATIC_THRESHOLD)
+        {
+            printf("Optimization skip: %d %f\n", it_per_id.feature_id, it_per_id.estimated_prob);
+            continue;
+        }
+
         ++feature_index;
 
         int imu_i = it_per_id.start_frame, imu_j = imu_i - 1;
@@ -786,9 +799,10 @@ void Estimator::optimization()
             }
             else
             {
-                ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j);
-                problem.AddResidualBlock(f, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index]);
-
+                ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j, it_per_id.feature_id);
+                ceres::ResidualBlockId block_id = problem.AddResidualBlock(f, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index]);
+                residual_block_ids.push_back(block_id);
+                feature_ids.push_back(it_per_id.feature_id);
                 // depth is obtained from lidar, skip optimizing it
                 if (it_per_id.lidar_depth_flag == true)
                     problem.SetParameterBlockConstant(para_Feature[feature_index]);
@@ -811,9 +825,25 @@ void Estimator::optimization()
     else
         options.max_solver_time_in_seconds = SOLVER_TIME;
 
+    std::cout << "Solving..." << std::endl;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
+    // ceres::Problem::EvaluateOptions opts;
+    // opts.residual_blocks = residual_block_ids;
+    // double total_cost = 0.0;
+    // vector<double> residuals;
+    // std::cout << "======After optimization======" << std::endl;
+    // problem.Evaluate(opts, &total_cost, &residuals, nullptr, nullptr);
+    // std::cout << "Block size: " << residual_block_ids.size() << std::endl;
+    // std::cout << "Evalauted block size: " << residuals.size() << std::endl;
+    // std::cout << "total cost: " << total_cost << std::endl;
+    // for (auto i = 0; i < residuals.size(); i++)
+    // {
+    //     std::cout << feature_ids[i] << ": " << residuals[i] << std::endl;
+    // }
+
+    printf("After optmization\n");
     double2vector();
 
     if (marginalization_flag == MARGIN_OLD)
@@ -857,6 +887,12 @@ void Estimator::optimization()
                 it_per_id.used_num = it_per_id.feature_per_frame.size();
                 if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
                     continue;
+                
+                if (it_per_id.estimated_prob > 0.0 && it_per_id.estimated_prob < STATIC_THRESHOLD)
+                {
+                    printf("Marginalization skip: %d %f\n", it_per_id.feature_id, it_per_id.estimated_prob);
+                    continue;
+                }
 
                 ++feature_index;
 
@@ -885,7 +921,7 @@ void Estimator::optimization()
                     }
                     else
                     {
-                        ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j);
+                        ProjectionFactor *f = new ProjectionFactor(pts_i, pts_j, it_per_id.feature_id);
                         ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(f, loss_function,
                                                                                        vector<double *>{para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index]},
                                                                                        vector<int>{0, 3});

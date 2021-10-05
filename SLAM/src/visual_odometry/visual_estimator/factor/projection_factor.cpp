@@ -3,7 +3,7 @@
 Eigen::Matrix2d ProjectionFactor::sqrt_info;
 double ProjectionFactor::sum_t;
 
-ProjectionFactor::ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j) : pts_i(_pts_i), pts_j(_pts_j)
+ProjectionFactor::ProjectionFactor(const Eigen::Vector3d &_pts_i, const Eigen::Vector3d &_pts_j, const int &_id) : pts_i(_pts_i), pts_j(_pts_j), id(_id)
 {
 #ifdef UNIT_SPHERE_ERROR
     Eigen::Vector3d b1, b2;
@@ -51,8 +51,11 @@ bool ProjectionFactor::Evaluate(double const *const *parameters, double *residua
     double dep_j = pts_camera_j.z();
     residual = (pts_camera_j / dep_j).head<2>() - pts_j.head<2>();
 #endif
-
     residual = sqrt_info * residual;
+    if (residual.x()*residual.x() + residual.y()*residual.y() > 100)
+    {
+        // std::cout << id << ": " << residual.x()*residual.x() + residual.y()*residual.y() <<std::endl;
+    }
 
     //reduce 表示残差residual对fci（pts_camera_j）的导数，同样根据不同的相机模型
     if (jacobians)

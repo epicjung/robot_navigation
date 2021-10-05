@@ -42,7 +42,7 @@ int FeatureManager::getFeatureCount()
 }
 
 
-bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 8, 1>>>> &image, double td)
+bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vector<pair<int, Eigen::Matrix<double, 9, 1>>>> &image, double td)
 {
     ROS_DEBUG("input feature: %d", (int)image.size());
     ROS_DEBUG("num of feature: %d", getFeatureCount());
@@ -61,7 +61,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
         if (it == feature.end())
         {
             // this feature in the image is observed for the first time, create a new feature object
-            feature.push_back(FeaturePerId(feature_id, frame_count, f_per_fra.depth));
+            feature.push_back(FeaturePerId(feature_id, frame_count, f_per_fra.depth, f_per_fra.prob));
             feature.back().feature_per_frame.push_back(f_per_fra);
         }
         else if (it->feature_id == feature_id)
@@ -77,7 +77,14 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count, const map<int, vec
                 it->lidar_depth_flag = true;
                 it->feature_per_frame[0].depth = f_per_fra.depth;
             }
+            if (f_per_fra.prob > 0 && it->prob_flag == false)
+            {
+                it->estimated_prob = f_per_fra.prob;
+                it->prob_flag = true;
+                it->feature_per_frame[0].prob = f_per_fra.prob;
+            }
         }
+
     }
 
     if (frame_count < 2 || last_track_num < 20)
@@ -156,6 +163,9 @@ void FeatureManager::setDepth(const VectorXd &x)
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
 
+        if (it_per_id.estimated_prob > 0.0 && it_per_id.estimated_prob < STATIC_THRESHOLD)
+            continue;
+
         it_per_id.estimated_depth = 1.0 / x(++feature_index);
 
         if (it_per_id.estimated_depth < 0)
@@ -187,6 +197,9 @@ void FeatureManager::clearDepth(const VectorXd &x)
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
             continue;
 
+        if (it_per_id.estimated_prob > 0.0 && it_per_id.estimated_prob < STATIC_THRESHOLD)
+            continue;
+
         it_per_id.estimated_depth = 1.0 / x(++feature_index);
         it_per_id.lidar_depth_flag = false;
     }
@@ -200,6 +213,9 @@ VectorXd FeatureManager::getDepthVector()
     {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2))
+            continue;
+
+        if (it_per_id.estimated_prob > 0.0 && it_per_id.estimated_prob < STATIC_THRESHOLD)
             continue;
 
         // optimized depth after ceres maybe negative, initialize them with default value for this optimization
@@ -285,6 +301,7 @@ void FeatureManager::removeOutlier()
 
 void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P)
 {
+    printf("RemoveShift\n");
     for (auto it = feature.begin(), it_next = feature.begin();
          it != feature.end(); it = it_next)
     {
@@ -294,6 +311,20 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
             it->start_frame--;
         else
         {
+            for (int i = 0; i < (int)it->feature_per_frame.size(); ++i)
+            {
+                printf("%f ", it->feature_per_frame[i].prob);
+            }
+            printf("\n");
+
+            double prob = -1;
+            if (it->feature_per_frame[0].prob > 0)
+                prob = it->feature_per_frame[0].prob;
+            else if (it->estimated_prob > 0)
+                prob = it->estimated_prob;
+
+            printf("id: %d, curr: %f, prev: %f\n", it->feature_id, it->estimated_prob, prob);
+
             // feature point and depth in old local camera frame
             Eigen::Vector3d uv_i = it->feature_per_frame[0].point;
             double depth = -1;
@@ -337,6 +368,18 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
                 {
                     it->estimated_depth = INIT_DEPTH;
                     it->lidar_depth_flag = false;
+                }
+                // Probability exists in the first of the remaining frame
+                if (it->feature_per_frame[0].prob > 0)
+                {
+                    it->estimated_prob = (it->feature_per_frame[0].prob + prob) / 2.0; // weighted average
+                    it->prob_flag = true;
+                }
+                //No probability at this frame -> use the previous probability estimate
+                else
+                {
+                    it->estimated_prob = (it->estimated_prob + prob) / 2.0; // weighted average
+                    it->prob_flag = (prob > 0.0 ? true : false);
                 }
             }
         }

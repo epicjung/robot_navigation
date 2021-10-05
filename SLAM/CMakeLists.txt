@@ -80,6 +80,12 @@ link_directories(
 set(HEADER_FILES src/tools/GMM/GMM.h src/tools/GMM/Matrix.h src/tools/GMM/Kmeans.h)
 set(gmm_library src/tools/GMM/GMM.cpp src/tools/GMM/Kmeans.cpp  src/tools/GMM/Matrix.cpp ${HEADER_FILES})
 
+file(GLOB test_files
+    "src/visual_odometry/visual_feature/camera_models/*.cc"
+    "src/visual_odometry/visual_feature/feature_tracker.cpp"
+    "src/visual_odometry/visual_feature/parameters.cpp"
+    "src/visual_odometry/visual_feature/test.cpp")
+
 ######################
 ### visual odometry
 ######################
@@ -103,12 +109,12 @@ file(GLOB visual_loop_files
     "src/visual_odometry/visual_feature/camera_models/*.cc"
 )
 # Visual Feature Tracker
-add_executable(${PROJECT_NAME}_visual_feature ${visual_feature_files})
-target_link_libraries(${PROJECT_NAME}_visual_feature ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
+# add_executable(${PROJECT_NAME}_visual_feature ${visual_feature_files})
+# target_link_libraries(${PROJECT_NAME}_visual_feature ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
 # Visual Odometry
 add_executable(${PROJECT_NAME}_visual_odometry ${visual_odometry_files})
 target_link_libraries(${PROJECT_NAME}_visual_odometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES}) 
-# Visual Lopp
+# Visual Loop
 add_executable(${PROJECT_NAME}_visual_loop ${visual_loop_files})
 target_link_libraries(${PROJECT_NAME}_visual_loop ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES}) 
 
@@ -133,9 +139,9 @@ add_dependencies(${PROJECT_NAME}_mapOptmization ${catkin_EXPORTED_TARGETS} ${PRO
 target_compile_options(${PROJECT_NAME}_mapOptmization PRIVATE ${OpenMP_CXX_FLAGS})
 target_link_libraries(${PROJECT_NAME}_mapOptmization PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${OpenMP_CXX_FLAGS} gtsam)
 
-add_executable(${PROJECT_NAME}_test src/lidar_odometry/test.cpp ${gmm_library})
+add_executable(${PROJECT_NAME}_test ${gmm_library} ${test_files})
 add_dependencies(${PROJECT_NAME}_test ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES})
 
 message(STATUS "OpenCV library status:")
 message(STATUS "    config: ${OpenCV_DIR}")

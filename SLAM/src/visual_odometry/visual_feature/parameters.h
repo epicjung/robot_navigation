@@ -28,6 +28,12 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/crop_box.h> 
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/segmentation/extract_clusters.h>
+#include <pcl/search/search.h>
+#include <pcl/search/kdtree.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
 
 #include <tf/LinearMath/Quaternion.h>
 #include <tf/transform_listener.h>
@@ -56,8 +62,7 @@
 using namespace std;
 
 typedef pcl::PointXYZI PointType;
-
-
+typedef pcl::PointXYZINormal PointType2;
 
 extern int ROW;
 extern int COL;
@@ -92,11 +97,14 @@ extern double L_C_RX;
 extern double L_C_RY;
 extern double L_C_RZ;
 
+extern int REMOVE_DYNAMIC;
 
 void readParameters(ros::NodeHandle &n);
 
-float pointDistance(PointType p);
+// float pointDistance(PointType p);
 
-float pointDistance(PointType p1, PointType p2);
+// float pointDistance(PointType p1, PointType p2);
 
 void publishCloud(ros::Publisher *thisPub, pcl::PointCloud<PointType>::Ptr thisCloud, ros::Time thisStamp, std::string thisFrame);
+
+void publishCloud(ros::Publisher *thisPub, pcl::PointCloud<PointType2>::Ptr thisCloud, ros::Time thisStamp, std::string thisFrame);

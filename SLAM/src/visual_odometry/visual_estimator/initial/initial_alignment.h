@@ -14,7 +14,7 @@ class ImageFrame
 {
     public:
         ImageFrame(){};
-        ImageFrame(const map<int, vector<pair<int, Eigen::Matrix<double, 8, 1>>>>& _points, 
+        ImageFrame(const map<int, vector<pair<int, Eigen::Matrix<double, 9, 1>>>>& _points, 
                    const vector<float> &_lidar_initialization_info,
                    double _t):
         t{_t}, is_key_frame{false}, reset_id{-1}, gravity{9.805}
@@ -49,7 +49,7 @@ class ImageFrame
             gravity = _lidar_initialization_info[17];
         };
 
-        map<int, vector<pair<int, Eigen::Matrix<double, 8, 1>> > > points;
+        map<int, vector<pair<int, Eigen::Matrix<double, 9, 1>>>> points;
         double t;
         
         IntegrationBase *pre_integration;

@@ -32,7 +32,7 @@ class Estimator
 
     // interface
     void processIMU(double t, const Vector3d &linear_acceleration, const Vector3d &angular_velocity);
-    void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 8, 1>>>> &image, 
+    void processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 9, 1>>>> &image, 
                       const vector<float> &lidar_initialization_info,
                       const std_msgs::Header &header);
 
