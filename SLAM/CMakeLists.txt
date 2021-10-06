@@ -35,6 +35,7 @@ find_package(OpenCV 2 REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(GTSAM REQUIRED QUIET)
 find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
+find_package(octomap REQUIRED)
 
 ######################
 ### Message generation
@@ -68,6 +69,7 @@ include_directories(
     ${CERES_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
     ${GTSAM_INCLUDE_DIR}
+    ${OCTOMAP_INCLUDE_DIRS}
     src/tools/GMM
 )
 
@@ -111,6 +113,7 @@ file(GLOB visual_loop_files
 # Visual Feature Tracker
 # add_executable(${PROJECT_NAME}_visual_feature ${visual_feature_files})
 # target_link_libraries(${PROJECT_NAME}_visual_feature ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
+
 # Visual Odometry
 add_executable(${PROJECT_NAME}_visual_odometry ${visual_odometry_files})
 target_link_libraries(${PROJECT_NAME}_visual_odometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES}) 
@@ -141,11 +144,11 @@ target_link_libraries(${PROJECT_NAME}_mapOptmization PRIVATE ${catkin_LIBRARIES}
 
 add_executable(${PROJECT_NAME}_test ${gmm_library} ${test_files})
 add_dependencies(${PROJECT_NAME}_test ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES} ${OCTOMAP_LIBRARIES})
 
-message(STATUS "OpenCV library status:")
-message(STATUS "    config: ${OpenCV_DIR}")
-message(STATUS "    version: ${OpenCV_VERSION}")
-message(STATUS "    libs: ${OpenCV_LIBS} ")
-message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
-message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
+# message(STATUS "OpenCV library status:")
+# message(STATUS "    config: ${OpenCV_DIR}")
+# message(STATUS "    version: ${OpenCV_VERSION}")
+# message(STATUS "    libs: ${OpenCV_LIBS} ")
+# message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
+# message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")

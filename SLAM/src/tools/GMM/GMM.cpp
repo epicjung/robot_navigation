@@ -346,8 +346,10 @@ double Gaussian_Mixture_Model::Expectaion_Maximization(int number_data, double *
 }
 double Gaussian_Mixture_Model::Gaussian_Distribution(double data[], int component_index){
 	int j = component_index;
+	// printf("data: %f; %f; %f\n", data[0], data[1], data[2]);
 	// printf("data: %f; %f; %f\n", data[0]*cos(data[1]), data[0]*sin(data[1]), data[2]);
 	if (!type_covariance.compare("diagonal")){
+		// printf("%d mean: %f; %f; %f\n", j, mean[j][0], mean[j][1], mean[j][2]);
 		// printf("%d mean: %f; %f; %f\n", j, mean[j][0]*cos(mean[j][1]), mean[j][0]*sin(mean[j][1]), mean[j][2]);
 		// printf("%d cov: %f; %f; %f\n", j, diagonal_covariance[j][0], diagonal_covariance[j][1], diagonal_covariance[j][2]);
 		// printf("Gaussian: %f\n", Gaussian_Distribution(data, mean[j], diagonal_covariance[j]));
