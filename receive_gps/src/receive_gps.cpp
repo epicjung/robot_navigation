@@ -9,6 +9,7 @@ GPS::GPS()
     pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/gps/pose", 1000);
     odom_pub = nh.advertise<nav_msgs::Odometry>("/gps/odom", 1000);
     gt_traj_pub = nh.advertise<nav_msgs::Path>("/gt_traj_pub", 1000);
+    first_odom_pub = nh.advertise<nav_msgs::Odometry>("/gps/first_odom", 1000, true);
 }
 
 GPS::~GPS(){
@@ -27,6 +28,19 @@ void GPS::navSatFixCallback(const sensor_msgs::NavSatFixPtr& fix_msg)
         string no_use;
         LLtoUTM(fix_msg->latitude, fix_msg->longitude, northing_offset, easting_offset, no_use);
         first_data_flag = true;
+
+        nav_msgs::Odometry first_odom;
+        first_odom.header.stamp = fix_msg->header.stamp;
+        first_odom.header.frame_id = "earth";
+        first_odom.child_frame_id = "world";
+        first_odom.pose.pose.position.x = easting_offset;
+        first_odom.pose.pose.position.y = northing_offset;
+        first_odom.pose.pose.position.z = 0.0;
+        first_odom.pose.pose.orientation.x = 0.0;
+        first_odom.pose.pose.orientation.y = 0.0;
+        first_odom.pose.pose.orientation.z = 0.0;
+        first_odom.pose.pose.orientation.w = 1.0;
+        first_odom_pub.publish(first_odom);
     }
     string zone;
     double northing, easting;

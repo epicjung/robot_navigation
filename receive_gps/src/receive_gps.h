@@ -29,6 +29,7 @@ private:
 	ros::Publisher pose_pub;
 	ros::Publisher gt_traj_pub;
 	ros::Publisher odom_pub;
+	ros::Publisher first_odom_pub;
 	bool first_data_flag;
     double northing_offset, easting_offset;
 	nav_msgs::Path path;
