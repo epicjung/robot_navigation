@@ -1,7 +1,7 @@
 #include <iostream>
 #define PCL_NO_PRECOMPILE
 
-#include "include/patchwork_obstacle.hpp"
+#include "TMAP/patchwork_obstacle.hpp"
 
 boost::shared_ptr<Patchwork_M> patchwork_m;
 

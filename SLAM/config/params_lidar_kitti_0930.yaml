@@ -4,8 +4,8 @@ PROJECT_NAME: "lvi_sam"
 lvi_sam:
 
   # Topics
-  pointCloudTopic: "/os_cloud_node/points"               # Point cloud data
-  imuTopic: "/imu/data"                         # IMU data
+  pointCloudTopic: "/points_raw"               # Point cloud data
+  imuTopic: "/imu_raw"                         # IMU data
 
   # Heading
   useImuHeadingInitialization: true          # if using GPS data, set to "true"
@@ -15,10 +15,10 @@ lvi_sam:
   savePCDDirectory: "/Downloads/LOAM/"        # in your home folder, starts and ends with "/". Warning: the code deletes "LOAM" folder then recreates it. See "mapOptimization" for implementation
 
   # Sensor Settings
-  N_SCAN: 128                                  # number of lidar channel (i.e., 16, 32, 64, 128)
-  Horizon_SCAN: 1024                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048)
-  timeField: "t"                           # point timestamp field, Velodyne - "time", Ouster - "t"
-  downsampleRate: 1                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1 
+  N_SCAN: 64                                  # number of lidar channel (i.e., 16, 32, 64, 128)
+  Horizon_SCAN: 1800                          # lidar horizontal resolution (Velodyne:1800, Ouster:512,1024,2048)
+  timeField: "time"                           # point timestamp field, Velodyne - "time", Ouster - "t"
+  downsampleRate: 2                           # default: 1. Downsample your data if too many points. i.e., 16 = 64 / 4, 16 = 16 / 1 
 
   # IMU Settings
   imuAccNoise: 3.9939570888238808e-03
@@ -28,8 +28,8 @@ lvi_sam:
   imuGravity: 9.80511
   
   # lidar to imu extrinsic
-  extrinsicTrans: [-0.3787, 0.0, -0.6945]
-  extrinsicRot: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+  extrinsicTrans: [-8.086759e-01, 3.195559e-01, -7.997231e-01]
+  extrinsicRot: [9.999976e-01, 7.553071e-04, -2.035826e-03, -7.854027e-04, 9.998898e-01, -1.482298e-02, 2.024406e-03, 1.482454e-02, 9.998881e-01]
   extrinsicRPY: [1, 0, 0, 0, 1, 0, 0, 0, 1]
 
   # LOAM feature threshold
@@ -48,7 +48,7 @@ lvi_sam:
   rotation_tollerance: 1000 # radians
 
   # CPU Params
-  numberOfCores: 8                              # number of cores for mapping optimization
+  numberOfCores: 10                              # number of cores for mapping optimization
   mappingProcessInterval: 0.15                  # seconds, regulate mapping frequency
 
   # Surrounding map
@@ -71,11 +71,11 @@ lvi_sam:
   globalMapVisualizationLeafSize: 1.0           # meters, global map visualization cloud density
 
   # euigon
-  nongroundDownsample: 0.2
-  maxZ: 2.0
-  minZ: -10.0
+  nongroundDownsample: 0.4
+  maxZ: 1.0
+  minZ: -1.95
   maxR: 100.0
   errorThres: 0.4 
-  clusteringTolerance: 0.5 
-  minClusterSize: 7
-  maxClusterSize: 4000
+  clusteringTolerance: 0.8 
+  minClusterSize: 5
+  maxClusterSize: 500

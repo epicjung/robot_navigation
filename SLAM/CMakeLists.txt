@@ -5,9 +5,8 @@ project(lvi_sam)
 ### Cmake flags
 ######################
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS "-std=c++14")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -pthread")
-set(OpenCV_DIRS "/usr/local/lib/cmake/opencv4")
 ######################
 ### Packages
 ######################
@@ -31,11 +30,12 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenMP REQUIRED)
 find_package(PCL REQUIRED)
-find_package(OpenCV 2 REQUIRED)
+find_package(OpenCV 3 REQUIRED)
 find_package(Ceres REQUIRED)
 find_package(GTSAM REQUIRED QUIET)
 find_package(Boost REQUIRED COMPONENTS filesystem program_options system)
 find_package(octomap REQUIRED)
+find_package(TMAP REQUIRED)
 
 ######################
 ### Message generation
@@ -70,7 +70,10 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     ${GTSAM_INCLUDE_DIR}
     ${OCTOMAP_INCLUDE_DIRS}
+    ${TMAP_INCLUDE_DIRS}
     src/tools/GMM
+    src/tools/gmphd/gmphd
+    src/tools/L-Shape-Fitting
 )
 
 link_directories(
@@ -82,6 +85,9 @@ link_directories(
 set(HEADER_FILES src/tools/GMM/GMM.h src/tools/GMM/Matrix.h src/tools/GMM/Kmeans.h)
 set(gmm_library src/tools/GMM/GMM.cpp src/tools/GMM/Kmeans.cpp  src/tools/GMM/Matrix.cpp ${HEADER_FILES})
 
+set(lshape_library src/tools/L-Shape-Fitting/lshaped_fitting.cpp src/tools/L-Shape-Fitting/lshaped_fitting.h)
+file(GLOB GMPHD "src/tools/gmphd/gmphd/*.h")
+
 file(GLOB test_files
     "src/visual_odometry/visual_feature/camera_models/*.cc"
     "src/visual_odometry/visual_feature/feature_tracker.cpp"
@@ -92,7 +98,9 @@ file(GLOB test_files
 ### visual odometry
 ######################
 file(GLOB visual_feature_files
-    "src/visual_odometry/visual_feature/*.cpp"
+    "src/visual_odometry/visual_feature/feature_tracker.cpp"
+    "src/visual_odometry/visual_feature/feature_tracker_node.cpp"
+    "src/visual_odometry/visual_feature/parameters.cpp"
     "src/visual_odometry/visual_feature/camera_models/*.cc"
 )
 file(GLOB visual_odometry_files
@@ -110,7 +118,7 @@ file(GLOB visual_loop_files
     "src/visual_odometry/visual_loop/ThirdParty/DVision/*.cpp"
     "src/visual_odometry/visual_feature/camera_models/*.cc"
 )
-# Visual Feature Tracker
+# # Visual Feature Tracker
 # add_executable(${PROJECT_NAME}_visual_feature ${visual_feature_files})
 # target_link_libraries(${PROJECT_NAME}_visual_feature ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
 
@@ -129,7 +137,7 @@ target_link_libraries(${PROJECT_NAME}_visual_loop ${catkin_LIBRARIES} ${PCL_LIBR
 add_executable(${PROJECT_NAME}_imuPreintegration src/lidar_odometry/imuPreintegration.cpp)
 target_link_libraries(${PROJECT_NAME}_imuPreintegration ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} gtsam)
 # Range Image Projection
-add_executable(${PROJECT_NAME}_imageProjection src/lidar_odometry/imageProjection.cpp)
+add_executable(${PROJECT_NAME}_imageProjection src/lidar_odometry/imageProjection.cpp ${GMPHD} ${lshape_library})
 add_dependencies(${PROJECT_NAME}_imageProjection ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_imageProjection ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 # Feature Association
@@ -146,9 +154,9 @@ add_executable(${PROJECT_NAME}_test ${gmm_library} ${test_files})
 add_dependencies(${PROJECT_NAME}_test ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME}_test PRIVATE ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${CERES_LIBRARIES} ${OCTOMAP_LIBRARIES})
 
-# message(STATUS "OpenCV library status:")
-# message(STATUS "    config: ${OpenCV_DIR}")
-# message(STATUS "    version: ${OpenCV_VERSION}")
-# message(STATUS "    libs: ${OpenCV_LIBS} ")
-# message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
-# message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "OpenCV library status:")
+message(STATUS "    config: ${OpenCV_DIR}")
+message(STATUS "    version: ${OpenCV_VERSION}")
+message(STATUS "    libs: ${OpenCV_LIBS} ")
+message(STATUS "    libraries: ${OpenCV_LIBRARIES}")
+message(STATUS "    include path: ${OpenCV_INCLUDE_DIRS}")

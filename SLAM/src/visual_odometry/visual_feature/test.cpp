@@ -100,7 +100,7 @@ struct RayMap
     {
         visualization_msgs::MarkerArray raymap;
         visualization_msgs::Marker lines;
-        lines.header.frame_id = "base_link";
+        lines.header.frame_id = "vins_body_ros";
         lines.scale.x = 0.05;
         lines.color.b = 1.0;
         lines.color.a = 1.0;
@@ -124,7 +124,7 @@ struct RayMap
             // get statistic
             
             visualization_msgs::Marker text;
-            text.header.frame_id = "base_link";
+            text.header.frame_id = "vins_body_ros";
             text.scale.z = 1.0;
             text.color.r = 1.0;
             text.color.g = 1.0;
@@ -368,6 +368,7 @@ public:
     ros::Publisher pubCentroidCloudGlobal;
     ros::Publisher pubRayMap;
     ros::Publisher pubSegmentID;
+    ros::Publisher pubSegmentID2;
     ros::Publisher pubGlobalMap;
     mutex mtx_lidar;
     lvi_sam::cloud_info cloudInfo;
@@ -403,6 +404,7 @@ public:
         pubGlobalMap        = nh.advertise<sensor_msgs::PointCloud2>(PROJECT_NAME + "/lidar/global_cloud", 1);
         pubRayMap               = nh.advertise<visualization_msgs::MarkerArray>(PROJECT_NAME + "/lidar/raymap", 1, true);
         pubSegmentID            = nh.advertise<visualization_msgs::MarkerArray>(PROJECT_NAME + "/lidar/segment_id", 1);
+        pubSegmentID2            = nh.advertise<visualization_msgs::MarkerArray>(PROJECT_NAME + "/lidar/segment_id2", 1);
         
         // feature tracker
         sub_img     = nh.subscribe(IMAGE_TOPIC,       5,    &Test::imgHandler, this, ros::TransportHints().tcpNoDelay());
@@ -467,12 +469,12 @@ public:
                 Segment seg = segs.second[i];
                 *outPcl += seg.cloud;
                 PointType centroid;
-                // centroid.x = seg.centroidX;
-                // centroid.y = seg.centroidY;
-                // centroid.z = seg.centroidZ;
-                centroid.x = seg.meanR * cos(seg.meanTheta);
-                centroid.y = seg.meanR * sin(seg.meanTheta);
-                centroid.z = seg.meanZ;
+                centroid.x = seg.centroidX;
+                centroid.y = seg.centroidY;
+                centroid.z = seg.centroidZ;
+                // centroid.x = seg.meanR * cos(seg.meanTheta);
+                // centroid.y = seg.meanR * sin(seg.meanTheta);
+                // centroid.z = seg.meanZ;
 
                 // if (raymap.getType() == GLOBAL)
                 //     printf("Publish: %d mean: %f; %f; %f\n", i, centroid.x,  centroid.y, centroid.z);
@@ -486,7 +488,7 @@ public:
                 std::string new_string = stream.str();
 
                 visualization_msgs::Marker text;
-                text.header.frame_id = "base_link";
+                text.header.frame_id = "vins_body_ros";
                 text.scale.z = 0.5;
                 text.color.r = 1.0;
                 text.color.g = 1.0;
@@ -509,6 +511,11 @@ public:
             if (pubSegmentID.getNumSubscribers() != 0)
                 pubSegmentID.publish(ids);
         }
+        else
+        {
+            if (pubSegmentID2.getNumSubscribers() != 0)
+                pubSegmentID2.publish(ids);
+        }
 
         printf("outPCL size: %d\n", (int)outPcl->points.size());
 
@@ -522,6 +529,132 @@ public:
             thisPubCloud->publish(segmentedCloud);
         if (thisPubCentroid->getNumSubscribers() != 0)
             thisPubCentroid->publish(centroidCloud);
+    }
+
+    void inference3(pcl::PointCloud<PointType2>::Ptr cloudIn)
+    {
+        pcl::PointCloud<PointType2>::Ptr local_centroids(new pcl::PointCloud<PointType2>());
+        pcl::PointCloud<PointType2>::Ptr global_centroids(new pcl::PointCloud<PointType2>());
+        pcl::KdTreeFLANN<PointType2>::Ptr kdtree(new pcl::KdTreeFLANN<PointType2>());
+        
+        std::vector<std::pair<Segment, Segment>> closest_pairs;
+        std::vector<int> pointSearchInd;
+        std::vector<float> pointSearchSqDis;
+        if (localRayMap.validSegments[0].size() > 0 && globalRayMap.validSegments[0].size() > 0)
+        {
+            for (auto &global_seg: globalRayMap.validSegments[0])
+            {
+                PointType2 pnt;
+                pnt.x = global_seg.centroidX;
+                pnt.y = global_seg.centroidY;
+                pnt.z = global_seg.centroidZ;
+                global_centroids->points.push_back(pnt);
+            }
+            kdtree->setInputCloud(global_centroids);
+
+            // float dist_sq_threshold = pow(sin(bin_res / 180.0 * M_PI) * 5.0, 2);
+            for (auto &local_seg: localRayMap.validSegments[0])
+            {
+                PointType2 pnt;
+                pnt.x = local_seg.centroidX;
+                pnt.y = local_seg.centroidY;
+                pnt.z = local_seg.centroidZ;
+                kdtree->nearestKSearch(pnt, 1, pointSearchInd, pointSearchSqDis);
+                if (pointSearchInd.size() == 1)
+                {
+                    Segment closest_seg = globalRayMap.validSegments[0][pointSearchInd[0]];
+                    closest_pairs.push_back(std::make_pair(local_seg, closest_seg));
+                }
+            }
+        }
+
+        pcl::KdTreeFLANN<PointType2>::Ptr kdtree2(new pcl::KdTreeFLANN<PointType2>());
+        std::vector<int> pointSearchInd2;
+        std::vector<float> pointSearchSqDis2;
+
+        for (size_t k = 0; k < closest_pairs.size(); ++k)
+        {
+            Segment curr_seg = closest_pairs[k].first;
+            Segment prev_seg = closest_pairs[k].second;
+            Eigen::Vector3f D(curr_seg.centroidX - prev_seg.centroidX, curr_seg.centroidY - prev_seg.centroidY, curr_seg.centroidZ - prev_seg.centroidZ);
+            float errors = 0.0;
+            pcl::PointCloud<PointType2>::Ptr copy_curr_ptr(new pcl::PointCloud<PointType2>());
+            pcl::PointCloud<PointType2>::Ptr copy_prev_ptr(new pcl::PointCloud<PointType2>());
+            pcl::copyPointCloud(curr_seg.cloud, *copy_curr_ptr);
+            pcl::copyPointCloud(prev_seg.cloud, *copy_prev_ptr);
+            kdtree->setInputCloud(copy_curr_ptr);
+            kdtree2->setInputCloud(copy_prev_ptr);
+
+            printf("------Segment %d\n", curr_seg.segmentId);
+            for (size_t i = 0; i < curr_seg.cloud.points.size(); ++i)
+            {
+                kdtree->nearestKSearch(curr_seg.cloud.points[i], 4, pointSearchInd, pointSearchSqDis);
+                kdtree2->nearestKSearch(curr_seg.cloud.points[i], 1, pointSearchInd2, pointSearchSqDis2);
+                if (pointSearchInd.size() == 4)
+                {
+                    Eigen::Vector3f A(curr_seg.cloud.points[pointSearchInd[1]].x,
+                                      curr_seg.cloud.points[pointSearchInd[1]].y,
+                                      curr_seg.cloud.points[pointSearchInd[1]].z);
+
+                    Eigen::Vector3f B(curr_seg.cloud.points[pointSearchInd[2]].x,
+                                      curr_seg.cloud.points[pointSearchInd[2]].y,
+                                      curr_seg.cloud.points[pointSearchInd[2]].z);
+                    
+                    Eigen::Vector3f C(curr_seg.cloud.points[pointSearchInd[3]].x,
+                                      curr_seg.cloud.points[pointSearchInd[3]].y,
+                                      curr_seg.cloud.points[pointSearchInd[3]].z);
+
+                    Eigen::Vector3f X(curr_seg.cloud.points[i].x,
+                                      curr_seg.cloud.points[i].y,
+                                      curr_seg.cloud.points[i].z);
+
+                    Eigen::Vector3f V(prev_seg.cloud.points[pointSearchInd2[0]].x,
+                                      prev_seg.cloud.points[pointSearchInd2[0]].y,
+                                      prev_seg.cloud.points[pointSearchInd2[0]].z);
+
+                    Eigen::Vector3f N = (A - B).cross(B - C);
+
+                    float mean_x = (A(0) + B(0) + C(0)) / 3.0;
+                    float mean_y = (A(1) + B(1) + C(1)) / 3.0;
+                    float mean_z = (A(2) + B(2) + C(2)) / 3.0;
+
+                    // check for normal and displacement vector
+                    Eigen::Vector3f N_norm = N.normalized();
+                    Eigen::Vector3f D_norm = D.normalized();
+                    // float cosine_dist = N_norm(0) * D_norm(0) + N_norm(1) * D_norm(1) + N_norm(2) * D_norm(2);
+
+                    float error = abs(N(0)*(V(0)-mean_x) + 
+                                    N(1)*(V(1)-mean_y) + 
+                                    N(2)*(V(2)-mean_z)) /
+                                    N.norm(); 
+
+                    // float range = sqrt(curr_seg.cloud.points[i].x * curr_seg.cloud.points[i].x +
+                    //                    curr_seg.cloud.points[i].y * curr_seg.cloud.points[i].y +
+                    //                    curr_seg.cloud.points[i].z * curr_seg.cloud.points[i].z);
+                    // V.normalize();
+                    
+                    // float s = (N(0) * A(0) + N(1) * A(1) + N(2) * A(2)) 
+                    //         / (N(0) * V(0) + N(1) * V(1) + N(2) * V(2));
+                    printf("mean: %f; %f; %f; closest: %f; %f; %f; error: %f\n", mean_x, mean_y, mean_z, V(0), V(1), V(2), error);
+                    // float error = abs(range - s);
+                    errors += error;
+                }
+            }
+            errors /= 1.0 * curr_seg.cloud.points.size();
+
+            // temp
+            for (std::vector<Segment>::iterator it = localRayMap.validSegments[0].begin(); it != localRayMap.validSegments[0].end(); it++)
+            {
+                if (it->segmentId == curr_seg.segmentId)
+                {
+                    if (it->staticProb == 0.0 || errors < it->staticProb)
+                    {
+                        it->staticProb = errors;
+                    }
+                }
+            }
+            printf("Pair: %d, %d, error: %f\n", curr_seg.segmentId, prev_seg.segmentId, errors);
+        }
     }
 
     void inference2(pcl::PointCloud<PointType2>::Ptr cloudIn)
@@ -543,68 +676,68 @@ public:
                 for (auto &seg : localRayMap.validSegments[0])
                 {
                     printf("-------------------------------------Segment\n");
-                    // 1. set data (entire segment)
-                    int numData = seg.cloud.points.size();
-                    double **data = new double*[numData];
-                    std::vector<double> prev_likelihoods;
-                    std::vector<double> curr_likelihoods;
-                    double max_prev_likelihood;
-                    double max_curr_likelihood;
-
-                    for (int k = 0; k < global_gmm.number_gaussian_components; ++k)
-                    {
-                        double likelihood = 0.0;
-                        for (int j = 0; j < numData; ++j)
-                        {
-                            data[j] = new double[3];
-                            data[j][0] = (double)seg.cloud.points[j].normal_x;
-                            data[j][1] = (double)seg.cloud.points[j].normal_y;
-                            data[j][2] = (double)seg.cloud.points[j].normal_z; 
-                            likelihood += global_gmm.Gaussian_Distribution(data[j], k);
-                        }
-                        // printf("Previous k: %d, likelihood: %f\n", k, likelihood);
-                        prev_likelihoods.push_back(likelihood);
-                    }
-
-                    for (int k = 0; k < local_gmm.number_gaussian_components; ++k)
-                    {
-                        double likelihood = 0.0;
-                        for (int j = 0; j < numData; ++j)
-                        {
-                            data[j] = new double[3];
-                            data[j][0] = (double)seg.cloud.points[j].normal_x;
-                            data[j][1] = (double)seg.cloud.points[j].normal_y;
-                            data[j][2] = (double)seg.cloud.points[j].normal_z; 
-                            likelihood += local_gmm.Gaussian_Distribution(data[j], k);
-                        }
-                        // printf("Current k: %d, likelihood: %f\n", k, likelihood);
-                        curr_likelihoods.push_back(likelihood);
-                    }
-                    // end
-
-                    // // 2. set data (centroid only)
-                    // double likelihood = 0.0;
-                    // int numData = 1;
+                    // // 1. set data (entire segment)
+                    // int numData = seg.cloud.points.size();
                     // double **data = new double*[numData];
-                    // data[0] = new double[3];
-                    // // data[0] = new double[2];
-                    // data[0][0] = seg.meanR;
-                    // data[0][1] = seg.meanTheta;
-                    // data[0][2] = seg.meanZ;
                     // std::vector<double> prev_likelihoods;
                     // std::vector<double> curr_likelihoods;
                     // double max_prev_likelihood;
                     // double max_curr_likelihood;
+
                     // for (int k = 0; k < global_gmm.number_gaussian_components; ++k)
                     // {
-                    //     prev_likelihoods.push_back(global_gmm.Gaussian_Distribution(data[0], k));
+                    //     double likelihood = 0.0;
+                    //     for (int j = 0; j < numData; ++j)
+                    //     {
+                    //         data[j] = new double[3];
+                    //         data[j][0] = (double)seg.cloud.points[j].normal_x;
+                    //         data[j][1] = (double)seg.cloud.points[j].normal_y;
+                    //         data[j][2] = (double)seg.cloud.points[j].normal_z; 
+                    //         likelihood += global_gmm.Gaussian_Distribution(data[j], k);
+                    //     }
+                    //     // printf("Previous k: %d, likelihood: %f\n", k, likelihood);
+                    //     prev_likelihoods.push_back(likelihood);
                     // }
-                    // printf("---Curr\n");
+
                     // for (int k = 0; k < local_gmm.number_gaussian_components; ++k)
                     // {
-                    //     curr_likelihoods.push_back(local_gmm.Gaussian_Distribution(data[0], k));
+                    //     double likelihood = 0.0;
+                    //     for (int j = 0; j < numData; ++j)
+                    //     {
+                    //         data[j] = new double[3];
+                    //         data[j][0] = (double)seg.cloud.points[j].normal_x;
+                    //         data[j][1] = (double)seg.cloud.points[j].normal_y;
+                    //         data[j][2] = (double)seg.cloud.points[j].normal_z; 
+                    //         likelihood += local_gmm.Gaussian_Distribution(data[j], k);
+                    //     }
+                    //     // printf("Current k: %d, likelihood: %f\n", k, likelihood);
+                    //     curr_likelihoods.push_back(likelihood);
                     // }
                     // // end
+
+                    // 2. set data (centroid only)
+                    double likelihood = 0.0;
+                    int numData = 1;
+                    double **data = new double*[numData];
+                    data[0] = new double[3];
+                    // data[0] = new double[2];
+                    data[0][0] = seg.meanR;
+                    data[0][1] = seg.meanTheta;
+                    data[0][2] = seg.meanZ;
+                    std::vector<double> prev_likelihoods;
+                    std::vector<double> curr_likelihoods;
+                    double max_prev_likelihood;
+                    double max_curr_likelihood;
+                    for (int k = 0; k < global_gmm.number_gaussian_components; ++k)
+                    {
+                        prev_likelihoods.push_back(global_gmm.Gaussian_Distribution(data[0], k));
+                    }
+                    printf("---Curr\n");
+                    for (int k = 0; k < local_gmm.number_gaussian_components; ++k)
+                    {
+                        curr_likelihoods.push_back(local_gmm.Gaussian_Distribution(data[0], k));
+                    }
+                    // end
 
                     max_prev_likelihood = *max_element(prev_likelihoods.begin(), prev_likelihoods.end());
                     max_curr_likelihood = *max_element(curr_likelihoods.begin(), curr_likelihoods.end());
@@ -911,10 +1044,10 @@ public:
         static tf::TransformListener listener;
         static tf::StampedTransform transform;
         try{
-            // listener.waitForTransform("vins_world", "vins_body_ros", msgIn->header.stamp, ros::Duration(0.01));
-            // listener.lookupTransform("vins_world", "vins_body_ros", msgIn->header.stamp, transform);
-            listener.waitForTransform("odom", "base_link", msgIn->header.stamp, ros::Duration(0.01));
-            listener.lookupTransform("odom", "base_link", msgIn->header.stamp, transform);
+            listener.waitForTransform("vins_world", "vins_body_ros", msgIn->header.stamp, ros::Duration(0.01));
+            listener.lookupTransform("vins_world", "vins_body_ros", msgIn->header.stamp, transform);
+            // listener.waitForTransform("odom", "base_link", msgIn->header.stamp, ros::Duration(0.01));
+            // listener.lookupTransform("odom", "base_link", msgIn->header.stamp, transform);
         } 
         catch (tf::TransformException ex){
             ROS_ERROR("lidar no tf");
@@ -994,12 +1127,12 @@ public:
             {
                 pcl::PointCloud<PointType2>::Ptr laserCloudLocal(new pcl::PointCloud<PointType2>());
                 pcl::transformPointCloud(*nonGroundCloud, *laserCloudLocal, transNow.inverse());
-                publishCloud(&pubGlobalMap, laserCloudLocal, cloudHeader.stamp, "base_link");
+                publishCloud(&pubGlobalMap, laserCloudLocal, cloudHeader.stamp, "vins_body_ros");
                 localRayMap.setRayMap(nonGroundLocal);
                 globalRayMap.setRayMap(laserCloudLocal);
-                inference2(nonGroundLocal);
-                publishSegmentedCloud(&pubSegmentedCloudLocal, &pubCentroidCloudLocal, localRayMap, cloudHeader.stamp, "base_link");
-                publishSegmentedCloud(&pubSegmentedCloudGlobal, &pubCentroidCloudGlobal, globalRayMap, cloudHeader.stamp, "base_link");
+                inference3(nonGroundLocal);
+                publishSegmentedCloud(&pubSegmentedCloudLocal, &pubCentroidCloudLocal, localRayMap, cloudHeader.stamp, "vins_body_ros");
+                publishSegmentedCloud(&pubSegmentedCloudGlobal, &pubCentroidCloudGlobal, globalRayMap, cloudHeader.stamp, "vins_body_ros");
             }
         }
         
@@ -1062,6 +1195,7 @@ public:
 
     ros::NodeHandle nh;
     ros::Subscriber sub_cloud;
+    ros::Subscriber sub_track;
     ros::Publisher pub_octomap;
     ros::Publisher pub_occupied;
     ros::Publisher pub_free;
@@ -1078,11 +1212,13 @@ public:
 
     double pc_min_x, pc_min_y, pc_min_z, pc_max_x, pc_max_y, pc_max_z;
     int lidar_count;
+    bool is_ground_segmentation = false;
 
     OctomapTest()
     {
         readParameters(nh);
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>("/GSeg/ground_nonground_ptCloud", 5, &OctomapTest::cloudHandler, this, ros::TransportHints().tcpNoDelay());
+        // sub_track = nh.subscribe<sensor_msgs::PointCloud2>("/octomap/changed_cells", 5, &OctomapTest::trackCallback, this, ros::TransportHints().tcpNoDelay());
         pub_octomap = nh.advertise<octomap_msgs::Octomap>("/octomap/octomap_full", 1, true);
         pub_occupied = nh.advertise<visualization_msgs::MarkerArray>("/octomap/occupied_cells", 1, true);
         pub_free = nh.advertise<visualization_msgs::MarkerArray>("/octomap/free_cells", 1, true); 
@@ -1092,11 +1228,11 @@ public:
         octree = new octomap::OcTree(0.2);
         octree->setProbHit(0.7);
         octree->setProbMiss(0.4);
-        octree->setClampingThresMin(0.12);
-        octree->setClampingThresMax(0.97);
+        octree->setClampingThresMin(0.12); // prob =~0.57
+        octree->setClampingThresMax(0.97); // prob =~0.9
         tree_depth = octree->getTreeDepth();
         octree->enableChangeDetection(true);
-        octree->setOccupancyThres(0.95);
+        octree->setOccupancyThres(0.6);
         std::cout << "Occupancy thres:" << octree->getOccupancyThres() <<std::endl;;
         max_tree_depth = tree_depth;
         max_range = 100.0;
@@ -1368,7 +1504,7 @@ public:
             }
         }
 
-        printf("free: %d, occupied: %d\n", free_cells.size(), occupied_cells.size());
+        printf("free: %d, occupied: %d\n", (int)free_cells.size(), (int)occupied_cells.size());
         // mark free cells only if not seen occupied in this cloud
         for (octomap::KeySet::iterator it = free_cells.begin(), end=free_cells.end(); it!=end; ++it) {
             if (occupied_cells.find(*it) == occupied_cells.end()) {
@@ -1390,6 +1526,21 @@ public:
         
         octree->prune();
 
+    }
+
+    void trackCallback(const sensor_msgs::PointCloud2::ConstPtr &cloud)
+    {
+        pcl::PointCloud<PointType> cells;
+        pcl::fromROSMsg(*cloud, cells);
+        std::cout  << "[client] size of newly occupied cloud: " << (int)cells.points.size() << std::endl;
+
+        for (size_t i = 0; i < cells.points.size(); i++) {
+            pcl::PointXYZI& pnt = cells.points[i];
+            octree->updateNode(octree->coordToKey(pnt.x, pnt.y, pnt.z), pnt.intensity, false);
+        }
+
+        octree->updateInnerOccupancy();
+        std::cout << "[client] octomap size after updating: " << (int)octree->calcNumNodes() << std::endl;   
     }
 
     void trackChanges()
@@ -1453,8 +1604,8 @@ public:
 
     void cloudHandler(const sensor_msgs::PointCloud2::ConstPtr &msg_in)
     {
-        // if (++lidar_count % (LIDAR_SKIP+1) != 0)
-        //     return;
+        if (++lidar_count % (LIDAR_SKIP+1) != 0)
+            return;
 
         TicToc tic_toc;
         // 0. listen to transform
@@ -1494,17 +1645,25 @@ public:
         // 2. Separate cloud into nonground and ground
         pcl::PointCloud<PointType>::Ptr pc_nonground(new pcl::PointCloud<PointType>());
         pcl::PointCloud<PointType>::Ptr pc_ground(new pcl::PointCloud<PointType>());
-        for (auto pt : laser_cloud_in->points)
+
+        if (is_ground_segmentation)
         {
-            if (pt.intensity == 1.0) // nonground
-                pc_nonground->points.push_back(pt);
-            else
-                pc_ground->points.push_back(pt);
+            for (auto pt : laser_cloud_in->points)
+            {
+                if (pt.intensity == 1.0) // nonground
+                    pc_nonground->points.push_back(pt);
+                else
+                    pc_ground->points.push_back(pt);
+            }
+            printf("Ground: %d, Nonground: %d\n", (int)pc_ground->points.size(),(int)pc_nonground->points.size()); 
         }
-        printf("Ground: %d, Nonground: %d\n", (int)pc_ground->points.size(),(int)pc_nonground->points.size()); 
+        else
+        {
+            *pc_nonground = *laser_cloud_in;
+        }
+
 
         // check occupancy
-
         insertScan(transform.getOrigin(), *pc_ground, *pc_nonground);
         printf("Octomap building time: %f ms\n", tic_toc.toc());
         trackChanges();
@@ -1518,7 +1677,7 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "test");
 
-    OctomapTest test;
+    Test test;
 
     ROS_INFO("\033[1;32m----> Test Started.\033[0m");
     

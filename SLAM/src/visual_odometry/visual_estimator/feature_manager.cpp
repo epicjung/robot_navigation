@@ -301,7 +301,7 @@ void FeatureManager::removeOutlier()
 
 void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3d marg_P, Eigen::Matrix3d new_R, Eigen::Vector3d new_P)
 {
-    printf("RemoveShift\n");
+    // printf("RemoveShift\n");
     for (auto it = feature.begin(), it_next = feature.begin();
          it != feature.end(); it = it_next)
     {
@@ -313,17 +313,15 @@ void FeatureManager::removeBackShiftDepth(Eigen::Matrix3d marg_R, Eigen::Vector3
         {
             for (int i = 0; i < (int)it->feature_per_frame.size(); ++i)
             {
-                printf("%f ", it->feature_per_frame[i].prob);
+                // printf("%f ", it->feature_per_frame[i].prob);
             }
-            printf("\n");
+            // printf("\n");
 
             double prob = -1;
             if (it->feature_per_frame[0].prob > 0)
                 prob = it->feature_per_frame[0].prob;
             else if (it->estimated_prob > 0)
                 prob = it->estimated_prob;
-
-            printf("id: %d, curr: %f, prev: %f\n", it->feature_id, it->estimated_prob, prob);
 
             // feature point and depth in old local camera frame
             Eigen::Vector3d uv_i = it->feature_per_frame[0].point;

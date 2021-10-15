@@ -33,12 +33,13 @@ generate_messages(
 )
 
 catkin_package(
- INCLUDE_DIRS
+ INCLUDE_DIRS include
  LIBRARIES
  CATKIN_DEPENDS roscpp rospy std_msgs
 )
 
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   src
@@ -57,10 +58,6 @@ set(algorithm_src
     utils/point_types.hpp
     utils/map_handle.hpp
     utils/signal_handle.hpp
-
-    src/include/node_gen.hpp
-    src/include/patchwork_obstacle.hpp
-    src/include/traversability_map.hpp
 )
 
 find_package(OpenCV)
@@ -81,3 +78,7 @@ add_executable(tMap_node src/tMap_node.cpp ${algorithm_src})
 target_link_libraries(tMap_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(tMap_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+install(DIRECTORY include/
+    DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+    FILES_MATCHING PATTERN "*.hpp"
+    PATTERN ".svn" EXCLUDE)

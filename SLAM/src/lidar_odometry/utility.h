@@ -13,6 +13,8 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <jsk_recognition_msgs/BoundingBox.h>
+#include <jsk_recognition_msgs/BoundingBoxArray.h>
 
 #include <opencv/cv.h>
 
@@ -29,6 +31,7 @@
 #include <pcl/filters/filter.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/crop_box.h> 
+#include <pcl/filters/passthrough.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/search/search.h>
@@ -60,10 +63,183 @@
 #include <unordered_map>
 
 #include "../visual_odometry/visual_estimator/utility/tic_toc.h"
+#include "lshaped_fitting.h"
 
 using namespace std;
 
 typedef pcl::PointXYZI PointType;
+
+struct Cluster
+{
+    int id;
+    pcl::PointCloud<PointType> cloud;
+    double centroid_x;
+    double centroid_y;
+    double centroid_z;
+    float feature;
+    jsk_recognition_msgs::BoundingBox bbox;
+
+    Cluster() {feature = 0; bbox.value = -1;}
+
+    void calculateCentroid()
+    {
+        double mean_x = 0.0;
+        double mean_y = 0.0;
+        double mean_z = 0.0;
+        const size_t n_points = cloud.points.size();
+        for (size_t i = 0u; i <n_points; ++i)
+        {
+            mean_x += cloud.points[i].x / n_points;
+            mean_y += cloud.points[i].y / n_points;
+            mean_z += cloud.points[i].z / n_points;
+        }
+        centroid_x = mean_x;
+        centroid_y = mean_y;
+        centroid_z = mean_z;
+    }
+
+    void fitBoundingBox()
+    {
+        // check min max z
+        PointType min_pt, max_pt;
+        pcl::getMinMax3D(cloud, min_pt, max_pt);
+        float height = max_pt.z - min_pt.z;
+        printf("%d------\n", id);
+        // printf("height: %f\n", height);
+        if (height < 0.5 || height > 2.60)
+            return;
+        
+        
+        std::vector<cv::Point2f> hull;
+        for (size_t i = 0u; i < cloud.points.size(); ++i)
+        {
+            hull.push_back(cv::Point2f(cloud.points[i].x, cloud.points[i].y));
+        }
+
+        LShapedFIT lshaped;
+        cv::RotatedRect rrect = lshaped.FitBox(&hull);
+        // std::cout << "Shaped-BBox Message : " << rrect.size.width << " " << rrect.size.height << " " << rrect.angle << std::endl;
+        
+        // check area
+        float area = rrect.size.width * rrect.size.height;
+        // printf("area: %f\n", area);
+        if (area > 20.0) 
+            return;
+        
+        // check ratio
+        float ratio = rrect.size.height > rrect.size.width ? rrect.size.height / rrect.size.width : rrect.size.width / rrect.size.height;
+        // printf("ratio: %f\n", ratio);
+        if (ratio >= 5.0)
+            return;
+
+        float density = cloud.points.size() / (rrect.size.width * rrect.size.height * height);
+        // printf("density: %f\n", density);
+        if (density < 3.0) 
+            return;
+        
+        std::vector<cv::Point2f> vertices = lshaped.getRectVertex();
+        cv::Point3f center;
+        center.z = (max_pt.z + min_pt.z) / 2.0;
+        for (size_t i = 0; i < vertices.size(); ++i)
+        {
+            center.x += vertices[i].x / vertices.size();
+            center.y += vertices[i].y / vertices.size();
+        }
+        bbox.pose.position.x = center.x;
+        bbox.pose.position.y = center.y;
+        bbox.pose.position.z = center.z;
+        bbox.dimensions.x = rrect.size.width;
+        bbox.dimensions.y = rrect.size.height;
+        bbox.dimensions.z = height;
+        bbox.value = 0.0;
+        printf("Centers: %f;%f;%f \n", center.x, center.y, center.z);
+        tf::Quaternion quat = tf::createQuaternionFromYaw(rrect.angle * M_PI / 180.0);
+        tf::quaternionTFToMsg(quat, bbox.pose.orientation);
+    }
+};
+
+enum Type {QUERY, REFERENCE};
+
+struct ClusterMap
+{
+    pcl::EuclideanClusterExtraction<PointType> cluster_extractor_;
+    std::vector<pcl::PointIndices> cluster_indices_;
+    pcl::search::KdTree<PointType>::Ptr kd_tree_;
+    pcl::PointCloud<PointType>::Ptr cloud_map_;
+    std::vector<Cluster> cluster_map_;
+
+    Type type_;
+    double max_r_;
+    double max_z_;
+
+    Type getType() {return type_;}
+    std::vector<Cluster> getMap(){return cluster_map_;}
+    std::vector<pcl::PointIndices> getClusterIndices(){return cluster_indices_;}
+    void setFeature(int id, float feature)
+    {
+        for (std::vector<Cluster>::iterator it = cluster_map_.begin(); it != cluster_map_.end(); ++it)
+        {
+            if (it->id == id)
+            {
+                if (it->feature == 0.0 || feature < it->feature)
+                    it->feature = feature;
+            }
+        }
+    }
+
+    void init(Type type, double max_r, double max_z, double tol, double min_cluster_size, double max_cluster_size)
+    {
+        type_ = type;
+        max_r_ = max_r;
+        max_z_ = max_z;
+        kd_tree_.reset(new pcl::search::KdTree<PointType>());
+        cloud_map_.reset(new pcl::PointCloud<PointType>());
+        cluster_extractor_.setClusterTolerance(tol);
+        cluster_extractor_.setMinClusterSize(min_cluster_size);
+        cluster_extractor_.setMaxClusterSize(max_cluster_size);
+        cluster_extractor_.setSearchMethod(kd_tree_);
+    }
+
+    void buildMap(pcl::PointCloud<PointType>::Ptr cloud_in, int &start_id)
+    {
+        TicToc tic_toc;
+
+        *cloud_map_ = *cloud_in;
+
+        cluster_indices_.clear();
+        cluster_extractor_.setInputCloud(cloud_map_);
+        cluster_extractor_.extract(cluster_indices_);
+        printf("Points: %d, # of segments: %d\n", cloud_map_->points.size(), (int)cluster_indices_.size());
+        ROS_WARN("Clustering: %f ms\n", tic_toc.toc());
+        addClusters(cluster_indices_, start_id);
+    }
+
+    void addClusters(std::vector<pcl::PointIndices> clusters, int &start_id)
+    {
+        TicToc tic_toc;
+        for (size_t i = 0u; i < clusters.size(); ++i)
+        {
+            Cluster cluster;
+            cluster.id = (int) start_id++;
+            std::vector<int> indices = clusters[i].indices;
+            for (size_t j = 0u; j <indices.size(); ++j)
+            {
+                const size_t index = indices[j];
+                PointType point = cloud_map_->points[index];
+                cluster.cloud.points.push_back(point);
+            }
+            cluster.calculateCentroid();
+            cluster.fitBoundingBox();
+            cluster_map_.push_back(cluster);
+        }
+        ROS_WARN("fit bounding box: %f ms\n", tic_toc.toc());
+    }
+
+    void clear()
+    {
+        cluster_map_.clear();
+    }
+};
 
 class ParamServer
 {
@@ -147,6 +323,16 @@ public:
     float globalMapVisualizationPoseDensity;
     float globalMapVisualizationLeafSize;
 
+    // euigon
+    float nongroundDownsample;
+    float maxZ;
+    float minZ;
+    float maxR;
+    float errorThres; 
+    double clusteringTolerance;
+    int minClusterSize;
+    int maxClusterSize;
+
     ParamServer()
     {
         nh.param<std::string>("/PROJECT_NAME", PROJECT_NAME, "sam");
@@ -215,6 +401,15 @@ public:
         nh.param<float>(PROJECT_NAME + "/globalMapVisualizationPoseDensity", globalMapVisualizationPoseDensity, 10.0);
         nh.param<float>(PROJECT_NAME + "/globalMapVisualizationLeafSize", globalMapVisualizationLeafSize, 1.0);
 
+        // euigon
+        nh.param<float>(PROJECT_NAME + "/nongroundDownsample", nongroundDownsample, 1e3);
+        nh.param<float>(PROJECT_NAME + "/maxZ", maxZ, 10.0);
+        nh.param<float>(PROJECT_NAME + "/minZ", minZ, 10.0);
+        nh.param<float>(PROJECT_NAME + "/maxR", maxR, 1.0);
+        nh.param<float>(PROJECT_NAME + "/errorThres", errorThres, 1.0);
+        nh.param<double>(PROJECT_NAME + "/clusteringTolerance", clusteringTolerance, 10.0);
+        nh.param<int>(PROJECT_NAME + "/minClusterSize", minClusterSize, 1.0);
+        nh.param<int>(PROJECT_NAME + "/maxClusterSize", maxClusterSize, 1.0);
         usleep(100);
     }
 

@@ -1,7 +1,7 @@
 #include <iostream>
 #define PCL_NO_PRECOMPILE
 
-#include "include/traversability_map.hpp"
+#include "TMAP/traversability_map.hpp"
 
 boost::shared_ptr<RoughTerrain_tMap> tMap;
 

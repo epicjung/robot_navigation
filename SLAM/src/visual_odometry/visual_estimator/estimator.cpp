@@ -575,7 +575,7 @@ void Estimator::vector2double()
     }
 
     VectorXd dep = f_manager.getDepthVector();
-    printf("VD: depth size: %d\n", (int)dep.size());
+    // printf("VD: depth size: %d\n", (int)dep.size());
     for (int i = 0; i < f_manager.getFeatureCount(); i++)
         para_Feature[i][0] = dep(i);
     
@@ -735,7 +735,7 @@ void Estimator::optimization()
         //problem.SetParameterBlockConstant(para_Td[0]);
     }
 
-    printf("Before optmization\n");
+    // printf("Before optmization\n");
     vector2double();
 
     // marginalization residual
@@ -768,7 +768,7 @@ void Estimator::optimization()
 
         if (it_per_id.estimated_prob > 0.0 && it_per_id.estimated_prob < STATIC_THRESHOLD)
         {
-            printf("Optimization skip: %d %f\n", it_per_id.feature_id, it_per_id.estimated_prob);
+            // printf("Optimization skip: %d %f\n", it_per_id.feature_id, it_per_id.estimated_prob);
             continue;
         }
 
@@ -825,7 +825,7 @@ void Estimator::optimization()
     else
         options.max_solver_time_in_seconds = SOLVER_TIME;
 
-    std::cout << "Solving..." << std::endl;
+    // std::cout << "Solving..." << std::endl;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
 
@@ -843,7 +843,7 @@ void Estimator::optimization()
     //     std::cout << feature_ids[i] << ": " << residuals[i] << std::endl;
     // }
 
-    printf("After optmization\n");
+    // printf("After optmization\n");
     double2vector();
 
     if (marginalization_flag == MARGIN_OLD)

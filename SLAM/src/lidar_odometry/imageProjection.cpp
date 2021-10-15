@@ -1,38 +1,42 @@
 #include "utility.h"
 #include "lvi_sam/cloud_info.h"
+#include "TMAP/patchwork_obstacle.hpp"
+#include "gmphd_filter.h"
 
-// // Velodyne
-// struct PointXYZIRT
-// {
-//     PCL_ADD_POINT4D
-//     PCL_ADD_INTENSITY;
-//     uint16_t ring;
-//     float time;
+// Velodyne
+struct PointXYZIRT
+{
+    PCL_ADD_POINT4D
+    PCL_ADD_INTENSITY;
+    uint16_t ring;
+    float time;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+} EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZIRT,  
+    (float, x, x) (float, y, y) (float, z, z) (float, intensity, intensity)
+    (uint16_t, ring, ring) (float, time, time)
+)
+
+// // Ouster
+// struct PointXYZIRT {
+//     PCL_ADD_POINT4D;
+//     float intensity;
+//     uint32_t t;
+//     uint16_t reflectivity;
+//     uint8_t ring;
+//     uint16_t noise;
+//     uint32_t range;
 //     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-// } EIGEN_ALIGN16;
+// }EIGEN_ALIGN16;
 
-// POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZIRT,  
+// POINT_CLOUD_REGISTER_POINT_STRUCT(PointXYZIRT,
 //     (float, x, x) (float, y, y) (float, z, z) (float, intensity, intensity)
-//     (uint16_t, ring, ring) (float, time, time)
+//     (uint32_t, t, t) (uint16_t, reflectivity, reflectivity)
+//     (uint8_t, ring, ring) (uint16_t, noise, noise) (uint32_t, range, range)
 // )
 
-// Ouster
-struct PointXYZIRT {
-    PCL_ADD_POINT4D;
-    float intensity;
-    uint32_t t;
-    uint16_t reflectivity;
-    uint8_t ring;
-    uint16_t noise;
-    uint32_t range;
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-}EIGEN_ALIGN16;
-
-POINT_CLOUD_REGISTER_POINT_STRUCT(PointXYZIRT,
-    (float, x, x) (float, y, y) (float, z, z) (float, intensity, intensity)
-    (uint32_t, t, t) (uint16_t, reflectivity, reflectivity)
-    (uint8_t, ring, ring) (uint16_t, noise, noise) (uint32_t, range, range)
-)
+using namespace gmphd;
 
 const int queueLength = 500;
 
@@ -56,6 +60,23 @@ private:
     std::deque<nav_msgs::Odometry> odomQueue;
 
     std::deque<sensor_msgs::PointCloud2> cloudQueue;
+
+    boost::shared_ptr<Patchwork_M> patchwork_m;
+    ClusterMap query_map;
+    ClusterMap ref_map;
+    std::deque<pcl::PointCloud<PointType>> deskewedCloudQueue;
+    std::deque<ros::Time> timeQueue;
+    ros::Publisher pub_static_scene;
+    ros::Publisher pub_ref_clustered;
+    ros::Publisher pub_ref_centroid;
+    ros::Publisher pub_query_clustered;
+    ros::Publisher pub_query_centroid;
+    ros::Publisher pub_cluster_map;
+    ros::Publisher pub_bbox;
+    ros::Publisher pub_ref_id;
+    ros::Publisher pub_query_id;
+    bool tracker_flag;
+
     sensor_msgs::PointCloud2 currentCloudMsg;
     
     double *imuTime = new double[queueLength];
@@ -84,10 +105,11 @@ private:
     double timeScanNext;
     std_msgs::Header cloudHeader;
 
+    GMPHD<2> target_tracker;
 
 public:
     ImageProjection():
-    deskewFlag(0)
+    deskewFlag(0), tracker_flag(false)
     {
         subImu        = nh.subscribe<sensor_msgs::Imu>        (imuTopic, 2000, &ImageProjection::imuHandler, this, ros::TransportHints().tcpNoDelay());
         subOdom       = nh.subscribe<nav_msgs::Odometry>      (PROJECT_NAME + "/vins/odometry/imu_propagate_ros", 2000, &ImageProjection::odometryHandler, this, ros::TransportHints().tcpNoDelay());
@@ -96,6 +118,15 @@ public:
         pubExtractedCloud = nh.advertise<sensor_msgs::PointCloud2> (PROJECT_NAME + "/lidar/deskew/cloud_deskewed", 5);
         pubLaserCloudInfo = nh.advertise<lvi_sam::cloud_info>      (PROJECT_NAME + "/lidar/deskew/cloud_info", 5);
 
+        pub_query_clustered = nh.advertise<sensor_msgs::PointCloud2>(PROJECT_NAME + "/lidar/local_segmented_cloud", 1);
+        pub_query_centroid  = nh.advertise<sensor_msgs::PointCloud2>(PROJECT_NAME + "/lidar/local_centroids", 1);
+        pub_ref_clustered = nh.advertise<sensor_msgs::PointCloud2>(PROJECT_NAME + "/lidar/global_segmented_cloud", 1);
+        pub_ref_centroid  = nh.advertise<sensor_msgs::PointCloud2>(PROJECT_NAME + "/lidar/global_centroids", 1);
+        pub_static_scene = nh.advertise<sensor_msgs::PointCloud2>(PROJECT_NAME + "/lidar/static_cloud", 1);
+        pub_cluster_map         = nh.advertise<visualization_msgs::MarkerArray>(PROJECT_NAME + "/lidar/raymap", 1, true);
+        pub_query_id      = nh.advertise<visualization_msgs::MarkerArray>(PROJECT_NAME + "/lidar/segment_id", 1);
+        pub_ref_id     = nh.advertise<visualization_msgs::MarkerArray>(PROJECT_NAME + "/lidar/segment_id2", 1);
+        pub_bbox       = nh.advertise<jsk_recognition_msgs::BoundingBoxArray>(PROJECT_NAME + "/lidar/bbox", 1);
         allocateMemory();
         resetParameters();
 
@@ -116,6 +147,7 @@ public:
         cloudInfo.pointColInd.assign(N_SCAN*Horizon_SCAN, 0);
         cloudInfo.pointRange.assign(N_SCAN*Horizon_SCAN, 0);
 
+        patchwork_m.reset(new Patchwork_M(&nh));
         resetParameters();
     }
 
@@ -137,6 +169,9 @@ public:
             imuRotY[i] = 0;
             imuRotZ[i] = 0;
         }
+
+        query_map.init(QUERY, maxR, maxZ, clusteringTolerance, minClusterSize, maxClusterSize);
+        ref_map.init(REFERENCE, maxR, maxZ, clusteringTolerance, minClusterSize, maxClusterSize);
     }
 
     ~ImageProjection(){}
@@ -165,6 +200,10 @@ public:
         projectPointCloud();
         
         cloudExtraction();
+
+        tracking();
+
+        // dynamicRemoval();
 
         publishClouds();
 
@@ -230,6 +269,15 @@ public:
         //     }
         // }
         // laserCloudIn->is_dense = true;
+        
+        for (pcl::PointCloud<PointXYZIRT>::iterator it = laserCloudIn->begin(); it != laserCloudIn->end(); it++)
+        {
+            if (isnan(it->x) || isnan(it->y) || isnan(it->z))
+            {
+                laserCloudIn->erase(it);
+            }
+        }
+        laserCloudIn->is_dense = true;
 
         // check dense flag
         if (laserCloudIn->is_dense == false)
@@ -556,8 +604,8 @@ public:
 
             rangeMat.at<float>(rowIdn, columnIdn) = range;
 
-            // thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].time); // Velodyne
-            thisPoint = deskewPoint(&thisPoint, (float)laserCloudIn->points[i].t / 1000000000.0); // Ouster
+            thisPoint = deskewPoint(&thisPoint, laserCloudIn->points[i].time); // Velodyne
+            // thisPoint = deskewPoint(&thisPoint, (float)laserCloudIn->points[i].t / 1000000000.0); // Ouster
 
             int index = columnIdn  + rowIdn * Horizon_SCAN;
             fullCloud->points[index] = thisPoint;
@@ -589,7 +637,550 @@ public:
             cloudInfo.endRingIndex[i] = count -1 - 5;
         }
     }
+
+    void resetViz(ros::Time this_stamp, std::string this_frame)
+    {
+        visualization_msgs::MarkerArray deleter;
+        visualization_msgs::Marker deleter_marker;
+        deleter_marker.header.frame_id = this_frame;
+        deleter_marker.header.stamp = this_stamp;
+        deleter_marker.action = visualization_msgs::Marker::DELETEALL;
+        deleter.markers.push_back(deleter_marker);
+        pub_query_id.publish(deleter);
+        pub_ref_id.publish(deleter);
+
+        jsk_recognition_msgs::BoundingBoxArray bbox_array;
+        bbox_array.header.stamp = this_stamp;
+        bbox_array.header.frame_id = this_frame;
+        jsk_recognition_msgs::BoundingBox bbox;
+        bbox.header.stamp = this_stamp;
+        bbox.header.frame_id = this_frame;
+        bbox_array.boxes.push_back(bbox);
+        pub_bbox.publish(bbox_array);
+    }
+
+    void tracking()
+    {
+        static int lidar_count = -1;
+        static int used_id_cnt = 0;
+        if (++lidar_count % (0+1) != 0)
+            return;
+        query_map.clear();
+
+        resetViz(cloudHeader.stamp, "odom");
+
+        // 1. Ground segmentation
+        pcl::PointCloud<PointType>::Ptr query_nonground(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr query_ground(new pcl::PointCloud<PointType>());
+        double patchwork_process_time;
+        patchwork_m->estimate_ground(*extractedCloud, *query_ground, *query_nonground, patchwork_process_time);
+        printf("[Query] Ground: %d, Nonground: %d, time: %f\n", (int)query_ground->points.size(), (int)query_nonground->points.size(), patchwork_process_time);
+        
+        // 3. Find reference scan and transform
+        static tf::TransformListener listener;
+        static tf::StampedTransform init_transform;
+
+        // TO-DO: "vins_world", "vins_body_ros" 
+        try{
+            listener.waitForTransform("odom", "base_link", cloudHeader.stamp, ros::Duration(0.01));
+            listener.lookupTransform("odom", "base_link", cloudHeader.stamp, init_transform);
+        } 
+        catch (tf::TransformException ex){
+            ROS_ERROR("no vins tf");
+            return;
+        }
+
+        // Voxelize
+        pcl::PointCloud<PointType>::Ptr query_nonground_ds(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr cloud_filtered(new pcl::PointCloud<PointType>());
+
+        TicToc voxel_time;
+        static pcl::VoxelGrid<PointType> query_downsize_filter;
+        static pcl::PassThrough<PointType> pass;
+        pass.setInputCloud(query_nonground);
+        pass.setFilterFieldName("z");
+        pass.setFilterLimits(minZ, maxZ);
+        pass.filter(*cloud_filtered);
+        *query_nonground = *cloud_filtered;
+        // query_downsize_filter.setSaveLeafLayout(true);
+        query_downsize_filter.setLeafSize(nongroundDownsample, nongroundDownsample, nongroundDownsample);
+        query_downsize_filter.setInputCloud(query_nonground);
+        query_downsize_filter.filter(*query_nonground_ds);
+        ROS_WARN("Voxelize: %f ms\n", voxel_time.toc());
+        printf("After voxelized: %d\n", (int)query_nonground_ds->points.size());
+
+        // get query pose
+        double xCur, yCur, zCur, rollCur, pitchCur, yawCur;
+        xCur = init_transform.getOrigin().x();
+        yCur = init_transform.getOrigin().y();
+        zCur = init_transform.getOrigin().z();
+        tf::Matrix3x3 init_m(init_transform.getRotation());
+        init_m.getRPY(rollCur, pitchCur, yawCur);
+        Eigen::Affine3f query_pose = pcl::getTransformation(xCur, yCur, zCur, rollCur, pitchCur, yawCur); // T_world_query
+        pcl::transformPointCloud(*query_nonground_ds, *query_nonground_ds, query_pose);
+
+        TicToc tic_toc;
+        query_map.buildMap(query_nonground_ds, used_id_cnt);
+        // ROS_WARN("Id: %d Cluster map building: %f ms\n", used_id_cnt, tic_toc.toc());
+
+        // init target tracking
+        TicToc tracking_time;
+        std::vector<Cluster> query_clusters = query_map.getMap();
+        int const n_targets = (int)query_clusters.size();
+
+        if (!tracker_flag)
+        {
+            GaussianModel<4> birth;
+            birth.m_weight = 0.2f;
+            birth.m_mean(0, 0) = 400.f;
+            birth.m_mean(1, 0) = 400.f;
+            birth.m_mean(2, 0) = 0.f;
+            birth.m_mean(3, 0) = 0.f;
+            birth.m_cov = (400.f * 400.f) * MatrixXf::Identity(4, 4);
+
+            GaussianMixture<4> birth_model({birth});
+            target_tracker.setBirthModel(birth_model);
+
+            // Dynamics (motion model)
+            target_tracker.setDynamicsModel(0.1f, 15.0f);
+
+            // Detection model
+            float const prob_detection = 0.98;
+            float const meas_noise_pose = 0.5f;
+            float const meas_noise_speed = 20.0f;
+            float const meas_background = 0.02; // false detection prob
+            target_tracker.setObservationModel(prob_detection, meas_noise_pose, meas_noise_speed, meas_background);
+        
+            // Pruning parameters
+            target_tracker.setPruningParameters(0.1f, 0.0f, 100);
+
+            // Spawn
+            SpawningModel<4> spawn_model;
+            std::vector<SpawningModel<4>> spawns = {spawn_model};
+            target_tracker.setSpawnModel(spawns);
+
+            // Survival over time
+            target_tracker.setSurvivalProbability(0.4f); 
+
+            tracker_flag = true;
+        }
+
+        // Track the circling targets
+        std::vector<Target<2>> target_meas;
+        Matrix<float, 2, 1> measurements;
+        float const detection_prob = 1.0;
+        int detected = 0;
+        for (unsigned int i = 0; i < n_targets; ++i)
+        {
+            int const maxRand = detection_prob * RAND_MAX;
+            if (rand() < maxRand)
+            {
+                if (query_clusters[i].bbox.value >= 0)
+                {
+                    measurements[0] = query_clusters[i].bbox.pose.position.x;
+                    measurements[1] = query_clusters[i].bbox.pose.position.y;
+                    target_meas.push_back({.position=measurements, .speed={0., 0.}, .weight=1., .id=query_clusters[i].id});
+                    detected++;
+                }
+            }
+        }
+        printf("Detections: %d out of %d\n", detected, (int)query_clusters.size());
+        target_tracker.setNewMeasurements(target_meas);
+        target_tracker.propagate();
+        const auto filtered=target_tracker.getTrackedTargets(0.1f);
+        
+        ClusterMap filtered_map;
+        filtered_map.init(REFERENCE, 100.0, 1.5, 0.0, 0, 0);
+        std::vector<Cluster> clusters;
+        for (size_t i = 0; i < filtered.size(); i++)
+        {
+            Cluster cluster;
+            cluster.id = filtered[i].id;
+            cluster.centroid_x = filtered[i].position[0];
+            cluster.centroid_y = filtered[i].position[1];
+            cluster.feature = sqrt(pow(filtered[i].speed[0], 2) + pow(filtered[i].speed[1], 2));
+            clusters.push_back(cluster);
+            printf("id: %d, filtered: %f;%f;%f, weight: %f\n", filtered[i].id, filtered[i].position[0], filtered[i].position[1], 0.0, filtered[i].weight);
+        }
+        printf("meas size: %d, filtered size: %d\n", (int)target_meas.size(), (int)filtered.size());
+        ROS_WARN("Tracking time: %f ms\n", tracking_time.toc());
+        filtered_map.cluster_map_ = clusters;
+        publishClusteredCloud(&pub_query_clustered, &pub_query_centroid, query_map, cloudHeader.stamp, "odom");
+        publishClusteredCloud(&pub_ref_clustered, &pub_ref_centroid, filtered_map, cloudHeader.stamp, "odom");
+        publishBoundingBox(&pub_bbox, query_map, cloudHeader.stamp, "odom");
+    }
+
+    void dynamicRemoval()
+    {
+        static int used_id_cnt = 0;
+        query_map.clear();
+        ref_map.clear();
+
+        // 1. Ground segmentation
+        pcl::PointCloud<PointType>::Ptr query_nonground(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr query_ground(new pcl::PointCloud<PointType>());
+        double patchwork_process_time;
+        patchwork_m->estimate_ground(*extractedCloud, *query_ground, *query_nonground, patchwork_process_time);
+        printf("[Query] Ground: %d, Nonground: %d\n", (int)query_ground->points.size(), (int)query_nonground->points.size());
+        
+        // 2. push time and segmented cloud to queue
+        deskewedCloudQueue.push_back(*query_nonground);
+        timeQueue.push_back(cloudHeader.stamp);
+
+        // 3. Find reference scan and transform
+        static tf::TransformListener listener;
+        static tf::StampedTransform init_transform;
+        static tf::StampedTransform opt_transform;
+
+        pcl::PointCloud<PointType>::Ptr ref_cloud(new pcl::PointCloud<PointType>());
+        if (deskewedCloudQueue.size() == 5)
+        {
+            *ref_cloud = deskewedCloudQueue.front();
+            ros::Time ref_time = timeQueue.front();
+            deskewedCloudQueue.pop_front();
+            timeQueue.pop_front();
+
+            // TO-DO: "vins_world", "vins_body_ros" 
+            try{
+                listener.waitForTransform("odom", "base_link", cloudHeader.stamp, ros::Duration(0.01));
+                listener.lookupTransform("odom", "base_link", cloudHeader.stamp, init_transform);
+            } 
+            catch (tf::TransformException ex){
+                ROS_ERROR("no vins tf");
+                return;
+            }
+
+            try {
+                listener.waitForTransform("odom", "base_link", ref_time, ros::Duration(0.01));
+                listener.lookupTransform("odom", "base_link", ref_time, opt_transform);
+            }
+            catch (tf::TransformException ex) {
+                ROS_ERROR("no lidar tf");
+                return;
+            }
+        }
+
+        // 5. Compare query and reference scan
+        if (ref_cloud->points.size() > 0)
+        {
+            // create new pointcloud with nonground points start from the first index
+            pcl::PointCloud<PointType>::Ptr to_be_segmented(new pcl::PointCloud<PointType>());
+            to_be_segmented->reserve(extractedCloud->points.size());
+            size_t nonground_size = query_nonground->points.size();
+            for (size_t i = 0; i < query_nonground->points.size(); i++)
+                to_be_segmented->points.push_back(query_nonground->points[i]);
+            
+            for (size_t i = 0; i < query_ground->points.size(); i++)
+                to_be_segmented->points.push_back(query_ground->points[i]);
+
+            // get query pose
+            double xCur, yCur, zCur, rollCur, pitchCur, yawCur;
+            xCur = init_transform.getOrigin().x();
+            yCur = init_transform.getOrigin().y();
+            zCur = init_transform.getOrigin().z();
+            tf::Matrix3x3 init_m(init_transform.getRotation());
+            init_m.getRPY(rollCur, pitchCur, yawCur);
+            Eigen::Affine3f query_pose = pcl::getTransformation(xCur, yCur, zCur, rollCur, pitchCur, yawCur); // T_world_query
+
+            // get reference pose
+            xCur = opt_transform.getOrigin().x();
+            yCur = opt_transform.getOrigin().y();
+            zCur = opt_transform.getOrigin().z();
+            tf::Matrix3x3 opt_m(opt_transform.getRotation());
+            opt_m.getRPY(rollCur, pitchCur, yawCur);
+            Eigen::Affine3f ref_pose = pcl::getTransformation(xCur, yCur, zCur, rollCur, pitchCur, yawCur); // T_world_ref
+            printf("[REF] Nonground: %d\n", (int)ref_cloud->points.size());
+
+            // Transform reference pointcloud to query pose
+            Eigen::Affine3f rel_pose = query_pose.inverse() * ref_pose; // T_query_ref = (T_world_query)' * T_world_ref
+            pcl::transformPointCloud(*ref_cloud, *ref_cloud, rel_pose);
+
+            // Voxelize
+            pcl::PointCloud<PointType>::Ptr query_nonground_ds(new pcl::PointCloud<PointType>());
+            pcl::PointCloud<PointType>::Ptr ref_nonground_ds(new pcl::PointCloud<PointType>());
+
+            TicToc voxel_time;
+            static pcl::VoxelGrid<PointType> query_downsize_filter;
+            static pcl::VoxelGrid<PointType> ref_downsize_filter;
+            query_downsize_filter.setSaveLeafLayout(true);
+            query_downsize_filter.setLeafSize(nongroundDownsample, nongroundDownsample, nongroundDownsample);
+            query_downsize_filter.setInputCloud(query_nonground);
+            query_downsize_filter.filter(*query_nonground_ds);
+            ref_downsize_filter.setLeafSize(nongroundDownsample, nongroundDownsample, nongroundDownsample);
+            ref_downsize_filter.setInputCloud(ref_cloud);
+            ref_downsize_filter.filter(*ref_nonground_ds);
+            printf("Voxelize: %f ms\n", voxel_time.toc());
+
+            TicToc tic_toc;
+            query_map.buildMap(query_nonground_ds, used_id_cnt);
+            ref_map.buildMap(ref_nonground_ds, used_id_cnt);
+            printf("Cluster map building: %f ms\n", tic_toc.toc());
+
+            // remove
+            TicToc removal_time;
+            inference(query_nonground_ds, to_be_segmented, query_downsize_filter, nonground_size);
+            publishCloud(&pub_static_scene, to_be_segmented, cloudHeader.stamp, "base_link");
+            publishClusteredCloud(&pub_query_clustered, &pub_query_centroid, query_map, cloudHeader.stamp, "base_link");
+            publishClusteredCloud(&pub_ref_clustered, &pub_ref_centroid, ref_map, cloudHeader.stamp, "base_link");
+            printf("Dynamic removal: %f ms\n", removal_time.toc());
+            *extractedCloud = *to_be_segmented;
+        }
+    }
+
+    void inference(pcl::PointCloud<PointType>::Ptr downsampled, pcl::PointCloud<PointType>::Ptr segmented, pcl::VoxelGrid<PointType> filter, size_t nonground_size)
+    {
+        pcl::PointCloud<PointType>::Ptr query_centroids(new pcl::PointCloud<PointType>());
+        pcl::PointCloud<PointType>::Ptr ref_centroids(new pcl::PointCloud<PointType>());
+        pcl::KdTreeFLANN<PointType>::Ptr kdtree(new pcl::KdTreeFLANN<PointType>());
+        
+        std::vector<std::pair<Cluster, Cluster>> closest_pairs;
+        std::vector<int> pointSearchInd;
+        std::vector<float> pointSearchSqDis;
+
+        std::vector<Cluster> query_clusters = query_map.getMap();
+        std::vector<Cluster> ref_clusters = ref_map.getMap();
+        std::vector<pcl::PointIndices> query_cluster_indices = query_map.getClusterIndices();
+        // Make the closest centroids a pair
+        if (query_clusters.size() > 0 && ref_clusters.size() > 0)
+        {
+            for (auto &ref: ref_clusters)
+            {
+                PointType pnt;
+                pnt.x = ref.centroid_x;
+                pnt.y = ref.centroid_y;
+                pnt.z = ref.centroid_z;
+                ref_centroids->points.push_back(pnt);
+            }
+            kdtree->setInputCloud(ref_centroids);
+
+            // float dist_sq_threshold = pow(sin(bin_res / 180.0 * M_PI) * 5.0, 2);
+            for (auto &query: query_clusters)
+            {
+                PointType pnt;
+                pnt.x = query.centroid_x;
+                pnt.y = query.centroid_y;
+                pnt.z = query.centroid_z;
+                kdtree->nearestKSearch(pnt, 1, pointSearchInd, pointSearchSqDis);
+                if (pointSearchInd.size() == 1)
+                {
+                    Cluster closest_cluster = ref_clusters[pointSearchInd[0]];
+                    closest_pairs.push_back(std::make_pair(query, closest_cluster));
+                }
+            }
+        }
+
+        // Compute normal distance
+        pointSearchInd.clear();
+        pointSearchSqDis.clear();
+        pcl::KdTreeFLANN<PointType>::Ptr kdtree2(new pcl::KdTreeFLANN<PointType>());
+        std::vector<int> pointSearchInd2;
+        std::vector<float> pointSearchSqDis2;
+
+        for (size_t k = 0; k < closest_pairs.size(); ++k)
+        {
+            Cluster query = closest_pairs[k].first;
+            Cluster ref = closest_pairs[k].second;
+            pcl::PointCloud<PointType>::Ptr copy_query_ptr(new pcl::PointCloud<PointType>());
+            pcl::PointCloud<PointType>::Ptr copy_ref_ptr(new pcl::PointCloud<PointType>());
+            pcl::copyPointCloud(query.cloud, *copy_query_ptr);
+            pcl::copyPointCloud(ref.cloud, *copy_ref_ptr);
+            kdtree->setInputCloud(copy_query_ptr);
+            kdtree2->setInputCloud(copy_ref_ptr);
+            float errors = 0.0;
+            
+            Eigen::Vector3f D(query.centroid_x - ref.centroid_x, query.centroid_y - ref.centroid_y, query.centroid_z - ref.centroid_z);
+
+            if (query.cloud.points.size() < 4)
+                continue;
+
+            // printf("------Cluster %d\n", query.id);
+            for (size_t i = 0; i < query.cloud.points.size(); ++i)
+            {
+                kdtree->nearestKSearch(query.cloud.points[i], 4, pointSearchInd, pointSearchSqDis);
+                kdtree2->nearestKSearch(query.cloud.points[i], 1, pointSearchInd2, pointSearchSqDis2);
+                if (pointSearchInd.size() == 4)
+                {
+                    Eigen::Vector3f A(query.cloud.points[pointSearchInd[1]].x,
+                                      query.cloud.points[pointSearchInd[1]].y,
+                                      query.cloud.points[pointSearchInd[1]].z);
+
+                    Eigen::Vector3f B(query.cloud.points[pointSearchInd[2]].x,
+                                      query.cloud.points[pointSearchInd[2]].y,
+                                      query.cloud.points[pointSearchInd[2]].z);
+                    
+                    Eigen::Vector3f C(query.cloud.points[pointSearchInd[3]].x,
+                                      query.cloud.points[pointSearchInd[3]].y,
+                                      query.cloud.points[pointSearchInd[3]].z);
+
+                    Eigen::Vector3f X(query.cloud.points[i].x,
+                                      query.cloud.points[i].y,
+                                      query.cloud.points[i].z);
+
+                    Eigen::Vector3f V(ref.cloud.points[pointSearchInd2[0]].x,
+                                      ref.cloud.points[pointSearchInd2[0]].y,
+                                      ref.cloud.points[pointSearchInd2[0]].z);
+
+                    Eigen::Vector3f N = (A - B).cross(B - C);
+
+                    float mean_x = (A(0) + B(0) + C(0)) / 3.0;
+                    float mean_y = (A(1) + B(1) + C(1)) / 3.0;
+                    float mean_z = (A(2) + B(2) + C(2)) / 3.0;
+
+                    // check for normal and displacement vector
+                    Eigen::Vector3f N_norm = N.normalized();
+                    Eigen::Vector3f D_norm = D.normalized();
+                    // float cosine_dist = N_norm(0) * D_norm(0) + N_norm(1) * D_norm(1) + N_norm(2) * D_norm(2);
+
+                    float error = abs(N(0)*(V(0)-mean_x) + 
+                                    N(1)*(V(1)-mean_y) + 
+                                    N(2)*(V(2)-mean_z)) /
+                                    N.norm(); 
+
+                    // float range = sqrt(curr_seg.cloud.points[i].x * curr_seg.cloud.points[i].x +
+                    //                    curr_seg.cloud.points[i].y * curr_seg.cloud.points[i].y +
+                    //                    curr_seg.cloud.points[i].z * curr_seg.cloud.points[i].z);
+                    // V.normalize();
+                    
+                    // float s = (N(0) * A(0) + N(1) * A(1) + N(2) * A(2)) 
+                    //         / (N(0) * V(0) + N(1) * V(1) + N(2) * V(2));
+                    // printf("mean: %f; %f; %f; closest: %f; %f; %f; error: %f\n", mean_x, mean_y, mean_z, V(0), V(1), V(2), error);
+                    // float error = abs(range - s);
+                    errors += error;
+                }
+            }
+            errors /= 1.0 * query.cloud.points.size();
+
+            // temp
+            query_map.setFeature(query.id, errors);
+
+            // printf("Pair: %d, %d, error: %f\n", query.id, ref.id, errors);
+
+            // find clusters and segment
+            std::vector<int> indices = query_cluster_indices.at(query.id).indices;
+            for (size_t j = 0u; j < indices.size(); ++j)
+            {
+                if (errors != 0.0 && errors < errorThres)
+                    downsampled->points[indices[j]].intensity = 1.0; // static
+            }
+        }
+
+        // preserve points with static label
+        pcl::PointCloud<PointType>::Ptr temp_segmented(new pcl::PointCloud<PointType>());
+        temp_segmented->reserve(segmented->points.size());
+        for (size_t j = 0u; j < segmented->points.size(); ++j)
+        {   
+            PointType p = segmented->points[j];
+            if (j < nonground_size) // nonground
+            {
+                int voxel_index = filter.getCentroidIndex(p);
+                if (voxel_index < 0)
+                    continue;
+                float label = downsampled->points[voxel_index].intensity;
+                if (label == 1.0)
+                    temp_segmented->points.push_back(p);
+            } 
+            else // ground
+            {
+                temp_segmented->points.push_back(p);
+            }
+
+        }
+        printf("Downsampled: %d, Original: %d, After-removal: %d\n", (int)downsampled->points.size(), (int)segmented->points.size(), (int)temp_segmented->points.size());
+        *segmented = *temp_segmented;
+    }
+
+    void publishBoundingBox(ros::Publisher *thisPub, ClusterMap map, ros::Time timestamp, string this_frame)
+    {
+        if (thisPub->getNumSubscribers() != 0)
+        {
+            jsk_recognition_msgs::BoundingBoxArray bbox_array;
+            bbox_array.header.stamp = timestamp;
+            bbox_array.header.frame_id = this_frame;
+            std::vector<Cluster> cluster_map = map.getMap();
+            for (size_t i = 0; i < cluster_map.size(); ++i)
+            {
+                jsk_recognition_msgs::BoundingBox bbox = cluster_map[i].bbox;
+                if (bbox.value >= 0)
+                {
+                    bbox.header.stamp = timestamp;
+                    bbox.header.frame_id = this_frame;
+                    bbox_array.boxes.push_back(bbox);  
+                }
+            }
+            pub_bbox.publish(bbox_array);
+        }
+    }
+
+    void publishClusteredCloud(ros::Publisher *thisPubCloud, ros::Publisher *thisPubCentroid, ClusterMap map, ros::Time thisStamp, string thisFrame)
+    {
+        pcl::PointCloud<PointType>::Ptr outPcl (new pcl::PointCloud<PointType>);
+        pcl::PointCloud<PointType>::Ptr centroids (new pcl::PointCloud<PointType>);
+        sensor_msgs::PointCloud2 segmentedCloud;
+        sensor_msgs::PointCloud2 centroidCloud;
+
+        visualization_msgs::MarkerArray ids;
+        std::vector<Cluster> cluster_map = map.getMap();
+
+        TicToc tic_toc;
+        printf("# of clusters: %d\n", cluster_map.size());
+        for (int i = 0; i < (int) cluster_map.size(); ++i)
+        {
+            Cluster cluster = cluster_map[i];
+            *outPcl += cluster.cloud;
+            PointType centroid;
+            centroid.x = cluster.centroid_x;
+            centroid.y = cluster.centroid_y;
+            centroid.z = cluster.centroid_z;
+            centroid.intensity = 100.0;
+            centroids->points.emplace_back(centroid);
+            
+            std::ostringstream stream;
+            stream.precision(5);
+            stream << cluster.id << ": " << cluster.feature;
+            std::string new_string = stream.str();
+
+            visualization_msgs::Marker text;
+            text.header.frame_id = thisFrame;
+            text.scale.z = 0.5;
+            text.color.r = 1.0;
+            text.color.g = 1.0;
+            text.color.b = 1.0;
+            text.color.a = 1.0;
+            text.action = 0;
+            text.type = 9; // TEXT_VIEW_FACING
+            text.id = cluster.id;
+            text.text = new_string;
+            text.pose.position.x = centroid.x;
+            text.pose.position.y = centroid.y;
+            text.pose.position.z = centroid.z;
+            text.pose.orientation.w = 1.0;
+            ids.markers.push_back(text);
+        }
+        printf("Publish %f ms\n", tic_toc.toc());
     
+
+        if (map.getType() == QUERY)
+        {
+            if (pub_query_id.getNumSubscribers() != 0)
+                pub_query_id.publish(ids);
+        }
+        else
+        {
+            if (pub_ref_id.getNumSubscribers() != 0)
+                pub_ref_id.publish(ids);
+        }
+
+        pcl::toROSMsg(*outPcl, segmentedCloud);
+        pcl::toROSMsg(*centroids, centroidCloud);
+        segmentedCloud.header.stamp = thisStamp;
+        segmentedCloud.header.frame_id = thisFrame;
+        centroidCloud.header = segmentedCloud.header;
+        if (thisPubCloud->getNumSubscribers() != 0)
+            thisPubCloud->publish(segmentedCloud);
+        if (thisPubCentroid->getNumSubscribers() != 0)
+            thisPubCentroid->publish(centroidCloud);
+    }
+
     void publishClouds()
     {
         cloudInfo.header = cloudHeader;

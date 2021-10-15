@@ -46,4 +46,8 @@
   <build_depend>octomap</build_depend>
   <run_depend>octomap</run_depend>
 
+  <build_depend>TMAP</build_depend>
+  <build_depend>gmphd</build_depend>
+  <run_depend>gmphd</run_depend>
+
 </package>

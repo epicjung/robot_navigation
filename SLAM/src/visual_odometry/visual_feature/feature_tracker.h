@@ -80,7 +80,8 @@ public:
     tf::StampedTransform transform;
 
     const int num_bins = 360;
-    vector<vector<PointType2>> pointsArray;
+    vector<vector<PointType>> pointsArray;
+    vector<vector<PointType2>> pointsArray2;
 
     DepthRegister(ros::NodeHandle n_in):
     n(n_in)
@@ -93,6 +94,11 @@ public:
         pointsArray.resize(num_bins);
         for (int i = 0; i < num_bins; ++i)
             pointsArray[i].resize(num_bins);
+        
+
+        pointsArray2.resize(num_bins);
+        for (int i = 0; i < num_bins; ++i)
+            pointsArray2[i].resize(num_bins);
     }
 
     std::pair<sensor_msgs::ChannelFloat32, sensor_msgs::ChannelFloat32>
@@ -183,7 +189,7 @@ public:
             if (dist < rangeImage.at<float>(row_id, col_id))
             {
                 rangeImage.at<float>(row_id, col_id) = dist;
-                pointsArray[row_id][col_id] = p;
+                pointsArray2[row_id][col_id] = p;
             }
         }
 
@@ -194,7 +200,7 @@ public:
             for (int j = 0; j < num_bins; ++j)
             {
                 if (rangeImage.at<float>(i, j) != FLT_MAX)
-                    depth_cloud_local_filter2->push_back(pointsArray[i][j]);
+                    depth_cloud_local_filter2->push_back(pointsArray2[i][j]);
             }
         }
         *depth_cloud_local = *depth_cloud_local_filter2;
@@ -341,7 +347,7 @@ public:
 
 
     sensor_msgs::ChannelFloat32 get_depth(const ros::Time& stamp_cur, const cv::Mat& imageCur, 
-                                          const pcl::PointCloud<PointType2>::Ptr& depthCloud,
+                                          const pcl::PointCloud<PointType>::Ptr& depthCloud,
                                           const camodocal::CameraPtr& camera_model ,
                                           const vector<geometry_msgs::Point32>& features_2d)
     {
@@ -377,18 +383,18 @@ public:
         Eigen::Affine3f transWorld2Cam = transWorld2Lidar * transLidar2Cam; // t_world_lidar * t_lidar_cam = t_world_cam
 
         // 0.4 transform cloud from global frame to camera frame
-        pcl::PointCloud<PointType2>::Ptr depth_cloud_local(new pcl::PointCloud<PointType2>());
+        pcl::PointCloud<PointType>::Ptr depth_cloud_local(new pcl::PointCloud<PointType>());
         pcl::transformPointCloud(*depthCloud, *depth_cloud_local, transWorld2Cam.inverse());
 
         // 0.5 project undistorted normalized (z) 2d features onto a unit sphere
-        pcl::PointCloud<PointType2>::Ptr features_3d_sphere(new pcl::PointCloud<PointType2>());
+        pcl::PointCloud<PointType>::Ptr features_3d_sphere(new pcl::PointCloud<PointType>());
         for (int i = 0; i < (int)features_2d.size(); ++i)
         {
             // normalize 2d feature to a unit sphere
             Eigen::Vector3f feature_cur(features_2d[i].x, features_2d[i].y, features_2d[i].z); // z always equal to 1
             feature_cur.normalize(); 
             // convert to ROS standard
-            PointType2 p;
+            PointType p;
             p.x =  feature_cur(2);
             p.y = -feature_cur(0);
             p.z = -feature_cur(1);
@@ -402,7 +408,7 @@ public:
 
         for (int i = 0; i < (int)depth_cloud_local->size(); ++i)
         {
-            PointType2 p = depth_cloud_local->points[i];
+            PointType p = depth_cloud_local->points[i];
             // filter points not in camera view
             if (p.x < 0 || abs(p.y / p.x) > 10 || abs(p.z / p.x) > 10)
                 continue;
@@ -425,7 +431,7 @@ public:
         }
 
         // 4. extract downsampled depth cloud from range image
-        pcl::PointCloud<PointType2>::Ptr depth_cloud_local_filter2(new pcl::PointCloud<PointType2>());
+        pcl::PointCloud<PointType>::Ptr depth_cloud_local_filter2(new pcl::PointCloud<PointType>());
         for (int i = 0; i < num_bins; ++i)
         {
             for (int j = 0; j < num_bins; ++j)
@@ -438,10 +444,10 @@ public:
         publishCloud(&pub_depth_cloud, depth_cloud_local, stamp_cur, "vins_body_ros");
 
         // 5. project depth cloud onto a unit sphere
-        pcl::PointCloud<PointType2>::Ptr depth_cloud_unit_sphere(new pcl::PointCloud<PointType2>());
+        pcl::PointCloud<PointType>::Ptr depth_cloud_unit_sphere(new pcl::PointCloud<PointType>());
         for (int i = 0; i < (int)depth_cloud_local->size(); ++i)
         {
-            PointType2 p = depth_cloud_local->points[i];
+            PointType p = depth_cloud_local->points[i];
             float range = sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
             p.x /= range;
             p.y /= range;
@@ -453,7 +459,7 @@ public:
             return depth_of_point;
 
         // 6. create a kd-tree using the spherical depth cloud
-        pcl::KdTreeFLANN<PointType2>::Ptr kdtree(new pcl::KdTreeFLANN<PointType2>());
+        pcl::KdTreeFLANN<PointType>::Ptr kdtree(new pcl::KdTreeFLANN<PointType>());
         kdtree->setInputCloud(depth_cloud_unit_sphere);
 
         // 7. find the feature depth using kd-tree
@@ -535,7 +541,7 @@ public:
                 camera_model->spaceToPlane(p_3d, p_2d);
                 
                 points_2d.push_back(cv::Point2f(p_2d(0), p_2d(1)));
-                PointType2 p = depth_cloud_local->points[i];
+                PointType p = depth_cloud_local->points[i];
                 float dist = sqrt(p.x*p.x+p.y*p.y+p.z*p.z);
                 points_distance.push_back(dist);
             }
