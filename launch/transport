@@ -1,0 +1,2 @@
+rosrun image_transport republish raw in:=/rgb/image_raw compressed out:=/out
+
