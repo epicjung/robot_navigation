@@ -1,0 +1,28 @@
+<launch>
+    <node name="rvizvisualisation_pathplanning" pkg="rviz" type="rviz" output="screen" args="-d $(find lig_path_planning)/config/rviz_config_v0.rviz" />
+    <!-- node launch -->
+    <!-- <include file="$(find lig_path_planning)/launch/node.launch"></include> -->
+
+    <!-- gps frame id transform from "gps" to "map" -->
+    <!-- <node name="static_tf2_gps2map" pkg="tf2_ros" type="static_transform_publisher" output="log" args="0 0 0 0 0 0 1 gps map" /> -->
+    
+    <!-- gps frame id transform from "map" to "pp_map" -->
+    <node name="static_tf2_map2ppmap" pkg="tf2_ros" type="static_transform_publisher" output="log" args="0 0 0 0 0 0 1 map pp_map" />
+
+    <!-- Send a static GPS fix to every new subscriber. Edit latitude and longitude in launch/demo.gps to use your own position. -->
+    <node pkg="rostopic" type="rostopic" name="fake_gps_goal_fix" args="pub /satellite_map sensor_msgs/NavSatFix --latch --file=$(find lig_path_planning)/config/static_goal.gps" />
+
+    <!-- TF simulator map to odom to base_footprint --> 
+    <!-- args="slam" or args="slam_false"   -->
+    <node pkg="lig_path_planning" type="odom_simulator" name="my_odom_simulator" output="screen" args="slam" />
+    
+    <!-- Map server -->
+    <arg name="map_file" default="$(find lig_path_planning)/maps/circular_kaist_plot.yaml"/>
+    <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)">
+        <param name="frame_id" value="pp_map" />
+    </node>
+
+    <arg name="robot_namespace" default="/"/>
+    <param name="robot_description" command="$(find xacro)/xacro '$(find husky_description)/urdf/husky.urdf.xacro'
+    robot_namespace:=$(arg robot_namespace)" />
+</launch>

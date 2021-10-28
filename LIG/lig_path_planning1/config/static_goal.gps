@@ -1,0 +1,31 @@
+# THIS GPS POSITION IS THE CENTER POSITION OF THE GLOBAL COSTMAP!
+header: 
+  seq: 1148
+  stamp: 
+    secs: 1619679572
+    nsecs: 897207975
+  frame_id: "not_important"
+status: 
+  status: 2
+  service: 1
+latitude: 36.3683644417
+longitude: 127.362330045
+altitude: 70.501
+position_covariance: [6.4e-05, 0.0, 0.0, 0.0, 2.5e-05, 0.0, 0.0, 0.0, 0.000256]
+position_covariance_type: 1
+
+# header:
+#   seq: 999
+#   stamp:
+#     secs: 1435607489
+#     nsecs: 924811809
+#   frame_id: goal
+# status:
+#   status: 0
+#   service: 1
+# latitude: 36.369725464280336
+# longitude: 127.36154674837813
+# altitude: 70.736
+# position_covariance: [3.6e-05, 0.0, 0.0, 0.0, 6.4e-05, 0.0, 0.0, 0.0, 0.00044100000000000004]
+# position_covariance_type: 1
+# # 36.369725464280336, 127.36154674837813

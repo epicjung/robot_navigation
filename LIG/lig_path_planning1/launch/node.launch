@@ -1,0 +1,39 @@
+<launch>
+  <!-- Arguments -->
+  <!-- <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/> -->
+  <arg name="model" value="burger"/> 
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="odom_topic" default="odom" />
+  <!-- <arg name="move_forward_only" default="false"/> -->
+
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 map base_link" /> -->
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="link2_broadcaster" args="0 0 0 0 0 0 1 base_link odom" /> -->
+
+  <!-- set use_sim_time flag -->
+  <!-- <param name="/use_sim_time" value="true"/> -->
+
+  <!-- move_base -->
+  <node pkg="lig_path_planning" type="path_node" respawn="false" name="LIG_launch" output="screen" args="hello 1 2 3">
+    <param name="base_global_planner" value="global_planner/GlobalPlanner" />       <!-- keep this fixed -->
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" />     <!-- keep this fixed -->
+
+    <param name="planner_patience" value="5.0" />
+    <param name="controller_frequency" value="10.0" />
+    <param name="controller_patience" value="15.0" />
+    <param name="conservative_reset_dist" value="3.0" />
+    <param name="planner_frequency" value="5.0" />
+    <param name="oscillation_timeout" value="10.0" />    
+    <param name="oscillation_distance" value="0.2" />    
+    <param name="shutdown_costmaps" value="false" />
+
+    <rosparam file="$(find lig_path_planning)/param/costmap_common_params_$(arg model).yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find lig_path_planning)/param/costmap_common_params_$(arg model).yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find lig_path_planning)/param/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find lig_path_planning)/param/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find lig_path_planning)/param/dwa_local_planner_params.yaml" command="load" />
+
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
+    <remap from="odom" to="$(arg odom_topic)"/>
+    <!-- <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" /> -->
+  </node>
+</launch>
