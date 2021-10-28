@@ -13,6 +13,7 @@
 
 
 ## To run path planning
+##
 roslaunch lig_path_planning rviz.launch
 roslaunch lig_path_planning node.launch
 ```
