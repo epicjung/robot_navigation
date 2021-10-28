@@ -1,0 +1,72 @@
+[
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build",
+  "command": "/usr/bin/c++  -DHAVE_YAMLCPP_GT_0_5_0 -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"map_server\\\" -I/home/suhu/catkin_ws/src/navigation/map_server/include -I/usr/include/bullet -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/SDL  -g   -o CMakeFiles/map_server-map_saver.dir/src/map_saver.cpp.o -c /home/suhu/catkin_ws/src/navigation/map_server/src/map_saver.cpp",
+  "file": "/home/suhu/catkin_ws/src/navigation/map_server/src/map_saver.cpp"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build",
+  "command": "/usr/bin/c++  -DHAVE_YAMLCPP_GT_0_5_0 -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"map_server\\\" -I/home/suhu/catkin_ws/src/navigation/map_server/include -I/usr/include/bullet -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/SDL  -g   -o CMakeFiles/map_server.dir/src/main.cpp.o -c /home/suhu/catkin_ws/src/navigation/map_server/src/main.cpp",
+  "file": "/home/suhu/catkin_ws/src/navigation/map_server/src/main.cpp"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build",
+  "command": "/usr/bin/c++  -DHAVE_YAMLCPP_GT_0_5_0 -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"map_server\\\" -I/home/suhu/catkin_ws/src/navigation/map_server/include -I/usr/include/bullet -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/SDL -I/usr/src/googletest/googletest/include  -g   -o CMakeFiles/map_server_utest.dir/test/utest.cpp.o -c /home/suhu/catkin_ws/src/navigation/map_server/test/utest.cpp",
+  "file": "/home/suhu/catkin_ws/src/navigation/map_server/test/utest.cpp"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build",
+  "command": "/usr/bin/c++  -DHAVE_YAMLCPP_GT_0_5_0 -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"map_server\\\" -I/home/suhu/catkin_ws/src/navigation/map_server/include -I/usr/include/bullet -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/SDL -I/usr/src/googletest/googletest/include  -g   -o CMakeFiles/map_server_utest.dir/test/test_constants.cpp.o -c /home/suhu/catkin_ws/src/navigation/map_server/test/test_constants.cpp",
+  "file": "/home/suhu/catkin_ws/src/navigation/map_server/test/test_constants.cpp"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build",
+  "command": "/usr/bin/c++  -DHAVE_YAMLCPP_GT_0_5_0 -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"map_server\\\" -Dmap_server_image_loader_EXPORTS -I/home/suhu/catkin_ws/src/navigation/map_server/include -I/usr/include/bullet -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/SDL  -g -fPIC   -o CMakeFiles/map_server_image_loader.dir/src/image_loader.cpp.o -c /home/suhu/catkin_ws/src/navigation/map_server/src/image_loader.cpp",
+  "file": "/home/suhu/catkin_ws/src/navigation/map_server/src/image_loader.cpp"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build",
+  "command": "/usr/bin/c++  -DHAVE_YAMLCPP_GT_0_5_0 -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"map_server\\\" -I/home/suhu/catkin_ws/src/navigation/map_server/include -I/usr/include/bullet -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/SDL -I/usr/src/googletest/googletest/include  -g   -o CMakeFiles/rtest.dir/test/rtest.cpp.o -c /home/suhu/catkin_ws/src/navigation/map_server/test/rtest.cpp",
+  "file": "/home/suhu/catkin_ws/src/navigation/map_server/test/rtest.cpp"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build",
+  "command": "/usr/bin/c++  -DHAVE_YAMLCPP_GT_0_5_0 -DROSCONSOLE_BACKEND_LOG4CXX -DROS_BUILD_SHARED_LIBS=1 -DROS_PACKAGE_NAME=\\\"map_server\\\" -I/home/suhu/catkin_ws/src/navigation/map_server/include -I/usr/include/bullet -I/opt/ros/melodic/include -I/opt/ros/melodic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp -I/usr/include/SDL -I/usr/src/googletest/googletest/include  -g   -o CMakeFiles/rtest.dir/test/test_constants.cpp.o -c /home/suhu/catkin_ws/src/navigation/map_server/test/test_constants.cpp",
+  "file": "/home/suhu/catkin_ws/src/navigation/map_server/test/test_constants.cpp"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build/gtest/googlemock",
+  "command": "/usr/bin/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgmock_main_EXPORTS -I/usr/src/googletest/googlemock/include -I/usr/src/googletest/googlemock -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC    -Wall -Wshadow -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -o CMakeFiles/gmock_main.dir/__/googletest/src/gtest-all.cc.o -c /usr/src/googletest/googletest/src/gtest-all.cc",
+  "file": "/usr/src/googletest/googletest/src/gtest-all.cc"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build/gtest/googlemock",
+  "command": "/usr/bin/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgmock_main_EXPORTS -I/usr/src/googletest/googlemock/include -I/usr/src/googletest/googlemock -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC    -Wall -Wshadow -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -o CMakeFiles/gmock_main.dir/src/gmock-all.cc.o -c /usr/src/googletest/googlemock/src/gmock-all.cc",
+  "file": "/usr/src/googletest/googlemock/src/gmock-all.cc"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build/gtest/googlemock",
+  "command": "/usr/bin/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgmock_main_EXPORTS -I/usr/src/googletest/googlemock/include -I/usr/src/googletest/googlemock -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC    -Wall -Wshadow -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -o CMakeFiles/gmock_main.dir/src/gmock_main.cc.o -c /usr/src/googletest/googlemock/src/gmock_main.cc",
+  "file": "/usr/src/googletest/googlemock/src/gmock_main.cc"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build/gtest/googlemock",
+  "command": "/usr/bin/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgmock_EXPORTS -I/usr/src/googletest/googlemock/include -I/usr/src/googletest/googlemock -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC    -Wall -Wshadow -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -o CMakeFiles/gmock.dir/__/googletest/src/gtest-all.cc.o -c /usr/src/googletest/googletest/src/gtest-all.cc",
+  "file": "/usr/src/googletest/googletest/src/gtest-all.cc"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build/gtest/googlemock",
+  "command": "/usr/bin/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgmock_EXPORTS -I/usr/src/googletest/googlemock/include -I/usr/src/googletest/googlemock -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC    -Wall -Wshadow -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -o CMakeFiles/gmock.dir/src/gmock-all.cc.o -c /usr/src/googletest/googlemock/src/gmock-all.cc",
+  "file": "/usr/src/googletest/googlemock/src/gmock-all.cc"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build/gtest/googlemock/gtest",
+  "command": "/usr/bin/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgtest_main_EXPORTS -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC    -Wall -Wshadow -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -o CMakeFiles/gtest_main.dir/src/gtest_main.cc.o -c /usr/src/googletest/googletest/src/gtest_main.cc",
+  "file": "/usr/src/googletest/googletest/src/gtest_main.cc"
+},
+{
+  "directory": "/home/suhu/catkin_ws/src/navigation/map_server/build/gtest/googlemock/gtest",
+  "command": "/usr/bin/c++  -DGTEST_CREATE_SHARED_LIBRARY=1 -Dgtest_EXPORTS -I/usr/src/googletest/googletest/include -I/usr/src/googletest/googletest  -g -fPIC    -Wall -Wshadow -DGTEST_HAS_PTHREAD=1 -fexceptions -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -o CMakeFiles/gtest.dir/src/gtest-all.cc.o -c /usr/src/googletest/googletest/src/gtest-all.cc",
+  "file": "/usr/src/googletest/googletest/src/gtest-all.cc"
+}
+]

@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+# generated from catkin/python/catkin/environment_cache.py
+
+# based on a snapshot of the environment before and after calling the setup script
+# it emulates the modifications of the setup script without recurring computations
+
+# new environment variables
+
+# modified environment variables
+export CMAKE_PREFIX_PATH="/home/suhu/catkin_ws/src/navigation/map_server/build/devel:$CMAKE_PREFIX_PATH"
+export LD_LIBRARY_PATH="/home/suhu/catkin_ws/src/navigation/map_server/build/devel/lib:$LD_LIBRARY_PATH"
+export PATH='/home/suhu/catkin_ws/devel/bin:/home/suhu/sim_ws/devel/bin:/opt/ros/melodic/bin:/home/suhu/google-cloud-sdk/bin:/home/suhu/anaconda3/bin:/home/suhu/anaconda3/condabin:/home/suhu/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin'
+export PKG_CONFIG_PATH="/home/suhu/catkin_ws/src/navigation/map_server/build/devel/lib/pkgconfig:$PKG_CONFIG_PATH"
+export PWD='/home/suhu/catkin_ws/src/navigation/map_server/build'
+export ROSLISP_PACKAGE_DIRECTORIES="/home/suhu/catkin_ws/src/navigation/map_server/build/devel/share/common-lisp:$ROSLISP_PACKAGE_DIRECTORIES"
+export ROS_PACKAGE_PATH='/home/suhu/catkin_ws/src/navigation/map_server:/home/suhu/catkin_ws/src:/home/suhu/sim_ws/src/catkin_simple:/home/suhu/sim_ws/src/assimp_catkin:/home/suhu/sim_ws/src/rpg_dvs_ros/dvs_msgs:/home/suhu/sim_ws/src/rpg_dvs_ros/dvs_renderer:/home/suhu/sim_ws/src/eigen_catkin:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_msgs:/home/suhu/sim_ws/src/gflags_catkin:/home/suhu/sim_ws/src/glog_catkin:/home/suhu/sim_ws/src/eigen_checks:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_unrealcv_bridge:/home/suhu/sim_ws/src/minkindr/minkindr:/home/suhu/sim_ws/src/minkindr_ros/minkindr_conversions:/home/suhu/sim_ws/src/yaml_cpp_catkin:/home/suhu/sim_ws/src/ze_oss/ze_cmake:/home/suhu/sim_ws/src/ze_oss/ze_common:/home/suhu/sim_ws/src/ze_oss/imp_core:/home/suhu/sim_ws/src/ze_oss/imp_bridge_opencv:/home/suhu/sim_ws/src/ze_oss/imp_bridge_ros:/home/suhu/sim_ws/src/ze_oss/ze_cameras:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_common:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_rendering:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_visualization:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/imp/imp_multi_objects_2d:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/imp/imp_opengl_renderer:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/imp/imp_panorama_renderer:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/imp/imp_planar_renderer:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/imp/imp_unrealcv_renderer:/home/suhu/sim_ws/src/ze_oss/ze_matplotlib:/home/suhu/sim_ws/src/ze_oss/ze_ros:/home/suhu/sim_ws/src/ze_oss/ze_visualization:/home/suhu/sim_ws/src/ze_oss/ze_splines:/home/suhu/sim_ws/src/ze_oss/ze_vi_simulation:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_trajectory:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_data_provider:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim:/home/suhu/sim_ws/src/rpg_esim/event_camera_simulator/esim_ros:/opt/ros/melodic/share'

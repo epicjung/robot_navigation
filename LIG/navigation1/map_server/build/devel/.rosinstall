@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/suhu/catkin_ws/src/navigation/map_server/build/devel/setup.sh
