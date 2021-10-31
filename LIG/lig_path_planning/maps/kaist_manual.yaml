@@ -1,8 +1,0 @@
-image: /home/suhu/catkin_ws/src/lig_path_planning/maps/kaist_manual.jpg
-resolution: 0.4054 #meters/pixel 30m/74pixels
-# resolution: 0.400 #meters/pixel 30m/74pixels
-origin: [-360.000000, -120.000000, 0.000000] #is this in A)meters or B)pixels? (map server 설명 부족)
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.196
-

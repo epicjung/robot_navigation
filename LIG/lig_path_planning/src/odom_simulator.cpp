@@ -31,167 +31,85 @@
 class Odom_sim {
     private:
         ros::NodeHandle nh_;    
-        ros::Subscriber sub_gps, sub_slam, sub_slam_first_gps;
-        ros::Publisher pub;
-        bool is_slam_;
-        tf2_ros::TransformBroadcaster tf2_map2odom, tf2_odom2basefootprint, tf2_map2center;
+        ros::Subscriber sub_;
         
-        // global_utm_center (map)  : the center UTM position of the global costmap
-        // global_utm_start (odom)  : the starting UTM position of the robot (when slam starts in SLAM mode or when GPS is first received in GPS mode)
-        // current_pose (base_link) : the current UTM position of the robot
-        geometry_msgs::Pose global_utm_center, global_utm_start, current_pose;
+        tf2_ros::TransformBroadcaster tf2_Map2CostmapCenter;
+        
+        // CostmapCenter    : the UTM position of the global costmap center point
+        // odom             : the UTM position of the robot at start (when slam starts in SLAM mode or when GPS is first received in GPS mode)
+        geometry_msgs::Pose utm_CostmapCenter, utm_odom;
 
-        // initial position and goal position in lat-long? OR UTM?
-        // geometry_msgs::Pose init_pose, goal_pose,
     public:
+        bool once_ = true;
+        /**
+         *  @brief This function publishes the transform from pp_map to map
+         */    
+        void publish_tf(){
+            tf2::Transform T_odom = tf2::Transform( 
+                    tf2::Quaternion(utm_odom.orientation.x, utm_odom.orientation.y, utm_odom.orientation.z, utm_odom.orientation.w),
+                    tf2::Vector3(utm_odom.position.x, utm_odom.position.y, utm_odom.position.z));
+
+            tf2::Transform T_costmap = tf2::Transform( 
+                    tf2::Quaternion(utm_CostmapCenter.orientation.x, utm_CostmapCenter.orientation.y, utm_CostmapCenter.orientation.z, utm_CostmapCenter.orientation.w),
+                    tf2::Vector3(utm_CostmapCenter.position.x, utm_CostmapCenter.position.y, utm_CostmapCenter.position.z));
+
+            tf2::Transform T_odom_costmap = T_odom.inverse()* T_costmap;
+            geometry_msgs::TransformStamped ts;
+            ts.header.stamp = ros::Time::now();
+            ts.header.frame_id= "map"; 
+            ts.child_frame_id = "costmap_center";
+            ts.transform.translation.x = T_odom_costmap.getOrigin().x();
+            ts.transform.translation.y = T_odom_costmap.getOrigin().y();
+            ts.transform.translation.z = T_odom_costmap.getOrigin().z();
+            ts.transform.rotation.x = T_odom_costmap.getRotation().x();
+            ts.transform.rotation.y = T_odom_costmap.getRotation().y();
+            ts.transform.rotation.z = T_odom_costmap.getRotation().z();
+            ts.transform.rotation.w = T_odom_costmap.getRotation().w();
+            tf2_Map2CostmapCenter.sendTransform(ts);
+        }
 
         /**
-         * @brief  Init
+         * @brief  Constructor
          */    
-        Odom_sim(ros::NodeHandle & nh, bool is_slam): nh_(nh), is_slam_(is_slam){
-            if (is_slam_){
-                // Use SLAM as odom simulator
-                std::cout<<"new Odom Sim object created with SLAM mode"<<std::endl;
-                this->sub_slam = this->nh_.subscribe("/receive_gps/odom", 400, &Odom_sim::slam_callback, this);
-                this->sub_slam_first_gps = this->nh_.subscribe("/gps/first_odom", 1, &Odom_sim::slam_first_gps_callback, this);
-            } else {
-                // Use GPS as odom simulator
-                std::cout<<"new Odom Sim object created with GPS mode"<<std::endl;
-                this->sub_gps = this->nh_.subscribe("/tcpfix", 100, &Odom_sim::gps_callback, this);
-            }
+        Odom_sim(ros::NodeHandle & nh): nh_(nh){
+            
+            std::cout<<"new Odom Sim object created with SLAM mode"<<std::endl;
+            this->sub_ = this->nh_.subscribe("/receive_gps/first_odom", 1, &Odom_sim::transformer, this);
 
             // The Global GPS position is the Global costmap's center GPS position
             double utm_nort, utm_east;
-            gps_common::UTM(36.3683644417,127.362330045,&utm_nort,&utm_east); // gps_common::LLtoUTM(l_lati,l_long,utm_nort,utm_east,"52N");
-            global_utm_center.position.x = utm_nort;
-            global_utm_center.position.y = utm_east;
-            global_utm_center.orientation.w = 1.0;
+            gps_common::UTM(36.3683644417,127.362330045,&utm_nort,&utm_east);
+            utm_CostmapCenter.position.x = utm_nort;
+            utm_CostmapCenter.position.y = utm_east;
+            utm_CostmapCenter.position.z = 0;
+            utm_CostmapCenter.orientation.x = 0;
+            utm_CostmapCenter.orientation.y = 0;
+            utm_CostmapCenter.orientation.z = 0;
+            utm_CostmapCenter.orientation.w = 1;
             ROS_WARN_STREAM("COST MAP CENTER    @ (UTM):\t"<<utm_nort<<","<<utm_east);
         }
 
         /**
-         * @brief  Get the current GPS location and publish
-         */
-        void gps_callback(const sensor_msgs::NavSatFix& msg){
-            // frame_id is "gps"
-            // sensor_msgs::NavSatFix t_msg = msg;
-            double l_lati = msg.latitude;
-            double l_long = msg.longitude;
-            // lat: 36.XXXX, long: 127.XXXX 
-            // printf("lat: %lf, long: %lf\n",l_lati, l_long);
-            
-            double utm_nort, utm_east;
-            // gps_common::LLtoUTM(l_lati,l_long,utm_nort,utm_east,"52N");
-            gps_common::UTM(l_lati,l_long,&utm_nort,&utm_east);
+         * @brief  transform broadcaster function
+         * @param  msg: the odom pose in UTM
+         * @return void
+         * @note   This function saves the odom pose in UTM
+         */    
+        void transformer(const nav_msgs::Odometry & msg){
+            if (this->once_ == true){
+                utm_odom.position.x = msg.pose.pose.position.x;
+                utm_odom.position.y = msg.pose.pose.position.y;
+                utm_odom.position.z = 0;
+                utm_odom.orientation.x = 0; //msg.pose.pose.orientation.x;
+                utm_odom.orientation.y = 0; //msg.pose.pose.orientation.y;
+                utm_odom.orientation.z = 0; //msg.pose.pose.orientation.z;
+                utm_odom.orientation.w = 1; //msg.pose.pose.orientation.w;
+                ROS_WARN_STREAM("ODOM START @ (UTM):\t"<<utm_odom.position.x<<","<<utm_odom.position.y);
 
-            static bool once = true;
-            if (once == true){
-                global_utm_start.position.x = utm_nort;
-                global_utm_start.position.y = utm_east;
-                global_utm_start.position.z = msg.altitude;
-                once = false;
+                this->once_ = false;
+                ROS_ERROR("Restart odom_simulator if you want to reset ODOM START again!");
             }
 
-            this->current_pose.position.x = utm_nort;
-            this->current_pose.position.y = utm_east;
-            this->current_pose.position.z = msg.altitude;
-
-            geometry_msgs::TransformStamped ts;
-            ts.header.stamp = msg.header.stamp;
-            ts.header.frame_id= "pp_odom"; 
-            ts.child_frame_id = "pp_base_link";
-            ts.transform.translation.x = utm_nort - global_utm_start.position.x;
-            ts.transform.translation.y = utm_east - global_utm_start.position.y;
-            ts.transform.translation.z = msg.altitude - global_utm_start.position.z;
-            ts.transform.rotation.x = 0.0;
-            ts.transform.rotation.y = 0.0;
-            ts.transform.rotation.z = 0.0;
-            ts.transform.rotation.w = 1.0;
-            this->tf2_odom2basefootprint.sendTransform(ts);
-
-            geometry_msgs::TransformStamped tss;
-            tss.header.stamp = msg.header.stamp;
-            tss.header.frame_id= "pp_map";
-            tss.child_frame_id = "pp_odom";
-            tss.transform.translation.x = global_utm_center.position.x-global_utm_start.position.x;
-            tss.transform.translation.y = global_utm_center.position.y-global_utm_start.position.y;
-            tss.transform.translation.z = 0.0;
-            tss.transform.rotation.x = 0.0;
-            tss.transform.rotation.y = 0.0;
-            tss.transform.rotation.z = 0.0;
-            tss.transform.rotation.w = 1.0;
-            this->tf2_map2odom.sendTransform(tss);
-        }
-
-        void slam_callback(const nav_msgs::Odometry & msg){
-
-            geometry_msgs::TransformStamped ts;
-            ts.header.stamp = msg.header.stamp;
-            ts.header.frame_id= "pp_odom";
-            ts.child_frame_id = "pp_base_link";
-            ts.transform.translation.x = msg.pose.pose.position.x;
-            ts.transform.translation.y = msg.pose.pose.position.y;
-            ts.transform.translation.z = 0.0;
-            ts.transform.rotation.x = 0.0;
-            ts.transform.rotation.y = 0.0;
-            ts.transform.rotation.z = 0.0;
-            ts.transform.rotation.w = 1.0;
-            this->tf2_odom2basefootprint.sendTransform(ts);
-
-            // Just returning all the time although this never changes because the refresh rate is important
-            geometry_msgs::TransformStamped tss;
-            tss.header.stamp = msg.header.stamp;
-            tss.header.frame_id= "pp_map";     // cost map center utm
-            tss.child_frame_id = "pp_odom";    // slam starting utm
-            tss.transform.translation.x = global_utm_center.position.x-global_utm_start.position.x;
-            tss.transform.translation.y = global_utm_center.position.y-global_utm_start.position.y;
-            tss.transform.translation.z = 0.0;
-            tss.transform.rotation.x = 0.0;
-            tss.transform.rotation.y = 0.0;
-            tss.transform.rotation.z = 0.0;
-            tss.transform.rotation.w = 1.0;
-            this->tf2_map2odom.sendTransform(tss);
-            
-            return;
-            
-        }
-
-        void slam_first_gps_callback(const nav_msgs::Odometry & msg){
-            
-            ROS_WARN_STREAM("ODOM START         @ (UTM):\t"<<global_utm_start.position.x<<","<<global_utm_start.position.y);
-            static bool once = true;
-            if (once == true){  
-                // euigon: transform imu frame to lidar frame
-                tf::Quaternion quat1(msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w);
-                tf::Vector3 pos1(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z);
-                tf::Transform t_world_map = tf::Transform(quat1, pos1);
-                
-                tf::Quaternion quat2(global_utm_center.orientation.x, global_utm_center.orientation.y, global_utm_center.orientation.z, global_utm_center.orientation.w);
-                tf::Vector3 pos2(global_utm_center.position.x, global_utm_center.position.y, global_utm_center.position.z);
-                tf::Transform t_world_center = tf::Transform(quat2, pos2);
-
-                tf::Transform t_map_center = t_world_map.inverse() * t_world_center;
-
-                geometry_msgs::TransformStamped ts;
-                ts.header.stamp = msg.header.stamp;
-                ts.header.frame_id= "map"; 
-                ts.child_frame_id = "pp_map";
-                ts.transform.translation.x = t_map_center.getOrigin().x();
-                ts.transform.translation.y = t_map_center.getOrigin().y();
-                ts.transform.translation.z = t_map_center.getOrigin().z();
-                ts.transform.rotation.x = t_map_center.getRotation().x();
-                ts.transform.rotation.y = t_map_center.getRotation().y();
-                ts.transform.rotation.z = t_map_center.getRotation().z();
-                ts.transform.rotation.w = t_map_center.getRotation().w();
-
-                while(1)
-                {
-                    this->tf2_map2center.sendTransform(ts);
-                    sleep(0.5);
-                }
-
-                once = false;
-            }
         }
 
 };
@@ -200,11 +118,18 @@ int main(int argc, char **argv){
     ros::init(argc, argv, "odom simulator with gps");
     ros::NodeHandle n;
     
-    std::string mode(argv[1]);
-    std::string slam_mode("slam");    
-    bool is_slam = (mode == slam_mode);
 
-    Odom_sim hello(n, is_slam);
-    ros::spin();
+    Odom_sim hello(n);
+    
+    ros::Rate r(2);
+    while(ros::ok() && hello.once_ == true){
+        ros::spinOnce();
+        r.sleep();
+    }
+    while(ros::ok()){
+        hello.publish_tf();
+        r.sleep();
+    }
+
     return 0;
 }

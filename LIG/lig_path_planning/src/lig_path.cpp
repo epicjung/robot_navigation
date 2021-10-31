@@ -28,13 +28,14 @@ namespace lig_move_base {
     planner_plan_(NULL), latest_plan_(NULL), controller_plan_(NULL),
     runPlanner_(false), setup_(false), p_freq_change_(false), c_freq_change_(false), new_global_plan_(false) {
 
+    printf("Starting to make MoveBase\n");
     as_ = new MoveBaseActionServer(ros::NodeHandle(), "move_base", boost::bind(&LIGMoveBase::executeCb, this, _1), false);
 
     ros::NodeHandle private_nh("~");
     ros::NodeHandle nh;
 
     recovery_trigger_ = PLANNING_R;
-
+    
     //get some parameters that will be global to the move base node
     std::string global_planner, local_planner;
     private_nh.param("base_global_planner", global_planner, std::string("navfn/NavfnROS"));
@@ -57,14 +58,14 @@ namespace lig_move_base {
     planner_plan_ = new std::vector<geometry_msgs::PoseStamped>();
     latest_plan_ = new std::vector<geometry_msgs::PoseStamped>();
     controller_plan_ = new std::vector<geometry_msgs::PoseStamped>();
-
+    
     //set up the planner's thread
     planner_thread_ = new boost::thread(boost::bind(&LIGMoveBase::planThread, this));
 
     //for commanding the base
     vel_pub_ = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     current_goal_pub_ = private_nh.advertise<geometry_msgs::PoseStamped>("current_goal", 0 );
-
+    
     ros::NodeHandle action_nh("move_base");
     action_goal_pub_ = action_nh.advertise<move_base_msgs::MoveBaseActionGoal>("goal", 1);
     recovery_status_pub_= action_nh.advertise<move_base_msgs::RecoveryStatus>("recovery_status", 1);
@@ -74,7 +75,7 @@ namespace lig_move_base {
     //like nav_view and rviz
     ros::NodeHandle simple_nh("move_base_simple");
     goal_sub_ = simple_nh.subscribe<geometry_msgs::PoseStamped>("goal", 1, boost::bind(&LIGMoveBase::goalCB, this, _1));
-
+    
     //we'll assume the radius of the robot to be consistent with what's specified for the costmaps
     private_nh.param("local_costmap/inscribed_radius", inscribed_radius_, 0.325); // not in yaml
     private_nh.param("local_costmap/circumscribed_radius", circumscribed_radius_, 0.46); // not in yaml
@@ -87,8 +88,7 @@ namespace lig_move_base {
     //create the ros wrapper for the planner's costmap... and initializer a pointer we'll use with the underlying map
     planner_costmap_ros_ = new costmap_2d::Costmap2DROS("global_costmap", tf_);
     planner_costmap_ros_->pause();
-
-    ROS_WARN("Created Global Costmap");
+    ROS_INFO("Created Global Costmap");
 
     //initialize the global planner
     try {

@@ -48,8 +48,7 @@ roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=/home/suh
 cd ~/catkin_ws
 roslaunch lig_path_planning rviz.launch
 rosbag play --clock lig....
-# roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/map.yaml #$HOME is where map.yaml is saved
-roslaunch ligt_path_planning node.launch
+roslaunch lig_path_planning node.launch
 ```
 
 ## Running w/ Rosbag w/ SLAM pose and Costmap 
@@ -57,13 +56,13 @@ roslaunch ligt_path_planning node.launch
 1. Check local_costmap_params.yaml
 2. Check costmap_common_params_burger.yaml and comment bottom 3 lines
 3. rviz.launch에서 odom_simulator node argument 고치기
-4. local_costmap_params.yaml & global_costmap_params.yaml의 global_frame, robot_base_frame에서 `pp_` prefix 붙이기
+4. globalNlocal_costmap_params.yaml의 global_frame, robot_base_frame에서 `pp_` prefix 붙이기
+
 ```sh
 cd ~/catkin_ws
 roslaunch lig_path_planning rviz.launch
 rosbag play --clock lig....
-# roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=$HOME/map.yaml #$HOME is where map.yaml is saved
-roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=/home/suhu/map.yaml #$HOME is where map.yaml is saved
+roslaunch lig_path_planning node.launch
 ```
 
 
@@ -91,4 +90,4 @@ roslaunch turtlebot3_navigation turtlebot3_navigation.launch map_file:=/home/suh
 ```
 
 ## Running in Real Time in the Real World (SLAM + T-map + PP)
-i
+
