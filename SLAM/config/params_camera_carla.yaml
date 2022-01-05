@@ -4,55 +4,56 @@
 project_name: "lvi_sam"
 
 #common parameters
-imu_topic: "/imu_raw"
-image_topic: "/kitti/camera_gray_left/image_raw"
+imu_topic: "/carla/ego_vehicle/imu/imu"
+image_topic: "/carla/ego_vehicle/camera/rgb/camera/image_color"
+# image_topic: "/camera/image"
 point_cloud_topic: "lvi_sam/lidar/deskew/cloud_deskewed"
 
 # Lidar Params
 use_lidar: 1                     # whether use depth info from lidar or not
-lidar_skip: 3                    # skip this amount of scans
+lidar_skip: 5                    # skip this amount of scans
 align_camera_lidar_estimation: 1 # align camera and lidar estimation for visualization
 
 # lidar to camera extrinsic (YPR = ZYX)
-lidar_to_cam_tx: 0.3335
-lidar_to_cam_ty: -0.0048
-lidar_to_cam_tz: -0.0756
-lidar_to_cam_rx: -1.5638
+lidar_to_cam_tx: 0.7
+lidar_to_cam_ty: 0.0
+lidar_to_cam_tz: -0.1
+lidar_to_cam_rx: -1.5707963
 lidar_to_cam_ry: 0.0
-lidar_to_cam_rz: -1.5731
+lidar_to_cam_rz: -1.5707963
 
 # lidar to imu extrinsic 
-lidar_to_imu_tx: -8.086759e-01
-lidar_to_imu_ty: 3.195559e-01
-lidar_to_imu_tz: -7.997231e-01
-lidar_to_imu_rx: -0.0008
-lidar_to_imu_ry: -0.002
-lidar_to_imu_rz: 0.0148
+lidar_to_imu_tx: -0.3
+lidar_to_imu_ty: 0.0
+lidar_to_imu_tz: -0.3
+lidar_to_imu_rx: 0.0
+lidar_to_imu_ry: 0.0
+lidar_to_imu_rz: 0.0
 
 # camera model (new camera)
 model_type: PINHOLE
 camera_name: camera
 
 # Mono camera config
-image_width: 1226
-image_height: 370
+image_width: 800
+image_height: 600
 distortion_parameters:
-   k1: -0.3792567
-   k2: 0.2121203
-   p1: 0.0009182571
-   p2: 0.001911304
+   k1: 0.0
+   k2: 0.0
+   p1: 0.0
+   p2: 0.0
 projection_parameters:
-   fx: 978.6977
-   fy: 971.7435
-   cx: 690.0
-   cy: 249.7222
+   fx: 400
+   fy: 400
+   cx: 400
+   cy: 300
 
 
 #imu parameters       The more accurate parameters you provide, the worse performance
-acc_n: 0.08         # accelerometer measurement noise standard deviation.
-gyr_n: 0.04         # gyroscope measurement noise standard deviation.
-acc_w: 0.00004        # accelerometer bias random work noise standard deviation.
-gyr_w: 2.0e-6       # gyroscope bias random work noise standard deviation.
+acc_n: 0.0         # accelerometer measurement noise standard deviation.
+gyr_n: 0.0         # gyroscope measurement noise standard deviation.
+acc_w: 0.0        # accelerometer bias random work noise standard deviation.
+gyr_w: 0.0       # gyroscope bias random work noise standard deviation.
 g_norm: 9.81007       #
 
 # Extrinsic parameter between IMU and Camera.
@@ -64,23 +65,38 @@ extrinsicRotation: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [  0.0078,   -0.0043,    1.0000,
-            -0.9999,   -0.0149,    0.0077,   
-             0.0148,   -0.9999,   -0.0044]
+   data: [ 0, 0, 1, 
+           -1, 0, 0, 
+           0, -1, 0]
 
 #Translation from camera frame to imu frame, imu^T_cam
 extrinsicTranslation: !!opencv-matrix
    rows: 3
    cols: 1
    dt: d
-   data: [1.1439, -0.3127,   0.7265] 
+   data: [1.0, 0.0, 0.2] 
+
+# # Rotation from imu frame to cam
+# extrinsicRotation: !!opencv-matrix
+#    rows: 3
+#    cols: 3
+#    dt: d
+#    data: [ 0, -1, 0, 
+#            0, 0, -1, 
+#            1, 0, 0]
+# # Translation from imu frame to cam
+# extrinsicTranslation: !!opencv-matrix
+#    rows: 3
+#    cols: 1
+#    dt: d
+#    data: [0.0, 0.2539, -0.4681] 
 
 #feature traker paprameters
 max_cnt: 150            # max feature number in feature tracking
-min_dist: 7            # min distance between two features 
+min_dist: 5            # min distance between two features 
 freq: 0                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
 F_threshold: 1.0        # ransac threshold (pixel)
-show_track: 1           # publish tracking image as topic
+show_track: 0           # publish tracking image as topic
 equalize: 1             # if image is too dark or light, trun on equalize to find enough features
 fisheye: 0              # if using fisheye, trun on it. A circle mask will be loaded to remove edge noisy points
 

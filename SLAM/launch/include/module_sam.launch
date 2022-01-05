@@ -4,6 +4,7 @@
     <!-- Lidar odometry param -->
     <!-- <rosparam file="$(find lvi_sam)/config/params_lidar.yaml" command="load" /> -->
     <rosparam file="$(find lvi_sam)/config/params_lidar_kitti_0930.yaml" command="load" />
+    <!-- <rosparam file="$(find lvi_sam)/config/params_lidar_carla.yaml" command="load" /> -->
 
     <!-- <rosparam file="$(find lvi_sam)/config/seg_params.yaml" command="load"/> -->
     <rosparam file="$(find lvi_sam)/config/seg_params_kitti_0930.yaml" command="load"/>
@@ -11,6 +12,7 @@
     <!-- VINS config -->
     <!-- <param name="vins_config_file" type="string" value="$(find lvi_sam)/config/params_camera.yaml" /> -->
     <param name="vins_config_file" type="string" value="$(find lvi_sam)/config/params_camera_kitti_0930.yaml" />
+    <!-- <param name="vins_config_file" type="string" value="$(find lvi_sam)/config/params_camera_carla.yaml" /> -->
 
     <!-- Lidar odometry -->
     <node pkg="$(arg project)"      type="$(arg project)_imuPreintegration"   name="$(arg project)_imuPreintegration"    output="screen"     respawn="true"/>

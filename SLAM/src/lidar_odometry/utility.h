@@ -77,9 +77,11 @@ struct Cluster
     double centroid_y;
     double centroid_z;
     float feature;
+    float vel_x;
+    float vel_y;
     jsk_recognition_msgs::BoundingBox bbox;
 
-    Cluster() {feature = 0; bbox.value = -1;}
+    Cluster() {feature = 0; vel_x = 0; vel_y = 0; bbox.value = -1;}
 
     void calculateCentroid()
     {

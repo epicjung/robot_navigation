@@ -106,7 +106,7 @@ private:
     std_msgs::Header cloudHeader;
 
     GMPHD<2> target_tracker;
-
+_
 public:
     ImageProjection():
     deskewFlag(0), tracker_flag(false)
@@ -230,18 +230,28 @@ public:
         // convert cloud
         pcl::fromROSMsg(currentCloudMsg, *laserCloudIn);
 
+        float verticalAngle, horizonAngle, range;
+        size_t rowInd, columnIdn, index, cloudSize;
+        cloudSize = laserCloudIn->points.size();
         // // rslidar
-        // float verticalAngle, horizonAngle, range;
-        // size_t rowInd, columnIdn, index, cloudSize;
-        // cloudSize = laserCloudIn->points.size();
         // std::vector<float> angles{-25.0, -14.638, -10.281, -7.910, -6.424, -5.407, -4.667, -4.333, -4.000, -3.667, -3.333, -3.000, -2.667, -2.333, -2.000, -1.667, -1.333, -1.000, -0.667, -0.333, 0.000,
         //                           0.333, 0.667, 1.000, 1.333, 1.667, 2.333, 3.333, 4.667, 7.000, 10.333, 15.000};
+
+        // // CARLA
+        // pcl::PointCloud<PointXYZIRT>::Ptr laserFiltered(new pcl::PointCloud<PointXYZIRT>());
+        // std::vector<float> angles{-26.8, -25.871, -24.942, -24.013, -23.084, -22.155, -21.226, -20.297, -19.368, -18.439, -17.510, -16.581
+        //                         ,-15.652,-14.723,-13.794,-12.865,-11.935,-11.006,-10.077,-9.148,-8.219,-7.290,-6.361,-5.432,-4.503,-3.574,-2.645,-1.716,-0.787,0.142,1.071,2.000};
+        
+        // float EGO_WIDTH = 2.17;
+        // float EGO_LENGTH = 4.809;
 
         // for (pcl::PointCloud<PointXYZIRT>::iterator it = laserCloudIn->begin(); it != laserCloudIn->end(); it++)
         // {
         //     if (isnan(it->x) || isnan(it->y) || isnan(it->z))
         //     {
-        //         laserCloudIn->erase(it);
+        //     }
+        //     else if((it->y >= -EGO_WIDTH/2.0 && it->y <= EGO_WIDTH/2.0) && (it->x <= EGO_LENGTH / 2.0 + 0.2 && it->x >= -EGO_LENGTH / 2.0 + 0.2))  // remove pointcloud for ego vehicle
+        //     {
         //     }
         //     else
         //     {
@@ -266,19 +276,27 @@ public:
         //             }
         //         }                    
         //         it->ring = rowInd;
+        //         laserFiltered->points.push_back(*it);
         //     }
         // }
-        // laserCloudIn->is_dense = true;
         
+        // laserCloudIn->is_dense = true;
+        // *laserCloudIn = *laserFiltered;
+        
+        pcl::PointCloud<PointXYZIRT>::Ptr laserFiltered(new pcl::PointCloud<PointXYZIRT>());
         for (pcl::PointCloud<PointXYZIRT>::iterator it = laserCloudIn->begin(); it != laserCloudIn->end(); it++)
         {
             if (isnan(it->x) || isnan(it->y) || isnan(it->z))
             {
-                laserCloudIn->erase(it);
+                // laserCloudIn->erase(it);
+            }
+            else
+            {
+                laserFiltered->points.push_back(*it);
             }
         }
+        *laserCloudIn = *laserFiltered;
         laserCloudIn->is_dense = true;
-
         // check dense flag
         if (laserCloudIn->is_dense == false)
         {
@@ -286,25 +304,25 @@ public:
             ros::shutdown();
         }
 
-        // check ring channel (comment this for rslidar)
-        static int ringFlag = 0;
-        if (ringFlag == 0)
-        {
-            ringFlag = -1;
-            for (int i = 0; i < (int)currentCloudMsg.fields.size(); ++i)
-            {
-                if (currentCloudMsg.fields[i].name == "ring")
-                {
-                    ringFlag = 1;
-                    break;
-                }
-            }
-            if (ringFlag == -1)
-            {
-                ROS_ERROR("Point cloud ring channel not available, please configure your point cloud data!");
-                ros::shutdown();
-            }
-        }     
+        // // check ring channel (comment this for rslidar and carla)
+        // static int ringFlag = 0;
+        // if (ringFlag == 0)
+        // {
+        //     ringFlag = -1;
+        //     for (int i = 0; i < (int)currentCloudMsg.fields.size(); ++i)
+        //     {
+        //         if (currentCloudMsg.fields[i].name == "ring")
+        //         {
+        //             ringFlag = 1;
+        //             break;
+        //         }
+        //     }
+        //     if (ringFlag == -1)
+        //     {
+        //         ROS_ERROR("Point cloud ring channel not available, please configure your point cloud data!");
+        //         ros::shutdown();
+        //     }
+        // }     
 
         // check point time
         if (deskewFlag == 0)
@@ -579,7 +597,7 @@ public:
                 continue;
 
             float horizonAngle = atan2(thisPoint.x, thisPoint.y) * 180 / M_PI;
-
+            
             static float ang_res_x = 360.0/float(Horizon_SCAN);
             int columnIdn = -round((horizonAngle-90.0)/ang_res_x) + Horizon_SCAN/2;
             if (columnIdn >= Horizon_SCAN)
@@ -799,6 +817,8 @@ public:
             cluster.centroid_x = filtered[i].position[0];
             cluster.centroid_y = filtered[i].position[1];
             cluster.feature = sqrt(pow(filtered[i].speed[0], 2) + pow(filtered[i].speed[1], 2));
+            cluster.vel_x = filtered[i].speed[0];
+            cluster.vel_y = filtered[i].speed[1];
             clusters.push_back(cluster);
             printf("id: %d, filtered: %f;%f;%f, weight: %f\n", filtered[i].id, filtered[i].position[0], filtered[i].position[1], 0.0, filtered[i].weight);
         }
@@ -1155,6 +1175,25 @@ public:
             text.pose.position.z = centroid.z;
             text.pose.orientation.w = 1.0;
             ids.markers.push_back(text);
+
+            visualization_msgs::Marker velocity;
+            velocity.header.frame_id = thisFrame;
+            velocity.type = 0; // ARROWS
+            geometry_msgs::Point pt1;
+            pt1.x = centroid.x;
+            pt1.y = centroid.y;
+            geometry_msgs::Point pt2;
+            pt2.x = pt1.x + cluster.vel_x;
+            pt2.y = pt1.y + cluster.vel_y;
+            velocity.scale.x = 0.1;
+            velocity.scale.y = 0.2;
+            velocity.color.a = 1.0;
+            velocity.color.r = 1.0;
+            velocity.action = 0;
+            velocity.id = cluster_map.size() + i;
+            velocity.points.push_back(pt1);
+            velocity.points.push_back(pt2);
+            ids.markers.push_back(velocity);
         }
         printf("Publish %f ms\n", tic_toc.toc());
     
