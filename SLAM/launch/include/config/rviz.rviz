@@ -14,6 +14,8 @@ Panels:
         - /Odometry1
         - /test_clouds1
         - /GPS1
+        - /GPS1/Path1
+        - /GPS1/Odometry1
       Splitter Ratio: 0.569299578666687
     Tree Height: 321
   - Class: rviz/Selection
@@ -75,6 +77,8 @@ Visualization Manager:
               Value: false
             imu_link:
               Value: false
+            lidar_link:
+              Value: true
             loam_camera:
               Value: false
             map:
@@ -93,15 +97,32 @@ Visualization Manager:
               Value: false
             velodyne:
               Value: false
+            world:
+              Value: true
           Marker Scale: 5
           Name: TF
           Show Arrows: true
           Show Axes: true
           Show Names: true
           Tree:
-            map:
-              odom:
-                {}
+            world:
+              map:
+                odom:
+                  base_link:
+                    chassis_link:
+                      imu_link:
+                        imu_enu_link:
+                          {}
+                      loam_camera:
+                        {}
+                      navsat_link:
+                        {}
+                      realsense_link:
+                        {}
+                      velodyne:
+                        {}
+                  lidar_link:
+                    {}
           Update Interval: 0
           Value: true
       Enabled: true
@@ -331,8 +352,8 @@ Visualization Manager:
         - Alpha: 0.05000000074505806
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 5.996901512145996
-            Min Value: -2.194164514541626
+            Max Value: 13.074243545532227
+            Min Value: -1.4998377561569214
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -738,7 +759,7 @@ Visualization Manager:
           Color: 245; 121; 0
           Color Transformer: FlatColor
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Min Color: 0; 0; 0
@@ -753,7 +774,7 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -900,25 +921,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 36.664241790771484
+      Distance: 38.92912292480469
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -3.2803542613983154
-        Y: -0.8246515989303589
-        Z: 5.3747429847717285
+        X: -1.760043978691101
+        Y: -0.41947364807128906
+        Z: 0.8845017552375793
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 0.5897958278656006
       Target Frame: map
       Value: Orbit (rviz)
-      Yaw: 1.1603907346725464
+      Yaw: 5.458590984344482
     Saved: ~
 Window Geometry:
   Displays:
