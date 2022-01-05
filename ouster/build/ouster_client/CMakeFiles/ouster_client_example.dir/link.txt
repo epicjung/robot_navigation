@@ -1,0 +1,1 @@
+/usr/bin/c++  -O3 -DNDEBUG  -rdynamic CMakeFiles/ouster_client_example.dir/src/example.cpp.o  -o ouster_client_example libouster_client.a /usr/lib/x86_64-linux-gnu/libjsoncpp.so.1.7.4 

@@ -90,7 +90,9 @@
         "cfenv": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "core": "cpp",
+        "numericaldiff": "cpp"
     },
     "ros.distro": "melodic"
 }

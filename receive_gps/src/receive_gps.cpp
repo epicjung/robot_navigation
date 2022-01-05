@@ -5,7 +5,7 @@ GPS::GPS()
 {
     ros::NodeHandle nh("~");
 
-    navsatfix_sub = nh.subscribe("/tcpfix", 1, &GPS::navSatFixCallback, this);
+    navsatfix_sub = nh.subscribe("/gps_topic", 1, &GPS::navSatFixCallback, this);
     pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/gps/pose", 1000);
     odom_pub = nh.advertise<nav_msgs::Odometry>("/gps/odom", 1000);
     gt_traj_pub = nh.advertise<nav_msgs::Path>("/gt_traj_pub", 1000);
@@ -76,31 +76,6 @@ void GPS::navSatFixCallback(const sensor_msgs::NavSatFixPtr& fix_msg)
     tf::poseTFToMsg(tfAfter, pose_stamped.pose);
     path.poses.push_back(pose_stamped);
     gt_traj_pub.publish(path);    
-
- //    geometry_msgs::PoseStamped pose;
- //    // pose.header.frame_id = "world";
- //    // pose.header.frame_id = "world";
- //    // pose.header.stamp = fix_msg->header.stamp;
- //    // pose.pose.position.x = easting;
- //    // pose.pose.position.y = northing;
- //    // pose.pose.orientation.w = 1.0;
- //    pose.header.stamp = fix_msg->header.stamp;
- //    pose.header.frame_id = "odom";
- //    pose.child_frame_id = "gps_link";
- //    pose.pose.position.x -= easting_offset;
- //    pose.pose.position.y -= northing_offset;
- //    // pose.header.frame_id = "map";
-	// pose_pub.publish(pose);
- //    path.poses.push_back(pose);
- //    std::cout << "data num "<<path.poses.size() << std::endl;
- //    gt_traj_pub.publish(path);
-
-    // publish TF
-    // static tf::TransformBroadcaster br;
-    // tf::Transform T_world_to_map = tf::Transform(tf::createQuaternionFromRPY(0.0, 0.0, -PI),
-    //                                               tf::Vector3(easting_offset, northing_offset, 0.0));
-    // tf::StampedTransform trans_world_to_map = tf::StampedTransform(T_world_to_map, pose.header.stamp, "world", "map");
-    // br.sendTransform(trans_world_to_map);
 }
 
 int main(int argc, char** argv)
@@ -109,7 +84,7 @@ int main(int argc, char** argv)
 
     GPS gps;
 
-    ROS_INFO("\033[1;32m----> receive_gps started.\033[0m");
+    ROS_INFO("\033[1;32m----> receive_gps started\033[0m");
 
     ros::spin();
 

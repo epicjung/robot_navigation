@@ -1,0 +1,55 @@
+Determining if the pthread_create exist failed with the following output:
+Change Dir: /home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_9dfea/fast"
+/usr/bin/make -f CMakeFiles/cmTC_9dfea.dir/build.make CMakeFiles/cmTC_9dfea.dir/build
+make[1]: 디렉터리 '/home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp' 들어감
+Building C object CMakeFiles/cmTC_9dfea.dir/CheckSymbolExists.c.o
+/usr/bin/cc   -fPIE   -o CMakeFiles/cmTC_9dfea.dir/CheckSymbolExists.c.o   -c /home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c
+Linking C executable cmTC_9dfea
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9dfea.dir/link.txt --verbose=1
+/usr/bin/cc      -rdynamic CMakeFiles/cmTC_9dfea.dir/CheckSymbolExists.c.o  -o cmTC_9dfea 
+CMakeFiles/cmTC_9dfea.dir/CheckSymbolExists.c.o: In function `main':
+CheckSymbolExists.c:(.text+0x1b): undefined reference to `pthread_create'
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_9dfea.dir/build.make:97: recipe for target 'cmTC_9dfea' failed
+make[1]: *** [cmTC_9dfea] Error 1
+make[1]: 디렉터리 '/home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp' 나감
+Makefile:126: recipe for target 'cmTC_9dfea/fast' failed
+make: *** [cmTC_9dfea/fast] Error 2
+
+File /home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp/CheckSymbolExists.c:
+/* */
+#include <pthread.h>
+
+int main(int argc, char** argv)
+{
+  (void)argv;
+#ifndef pthread_create
+  return ((int*)(&pthread_create))[argc];
+#else
+  (void)argc;
+  return 0;
+#endif
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/bin/make" "cmTC_9e04a/fast"
+/usr/bin/make -f CMakeFiles/cmTC_9e04a.dir/build.make CMakeFiles/cmTC_9e04a.dir/build
+make[1]: 디렉터리 '/home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp' 들어감
+Building C object CMakeFiles/cmTC_9e04a.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=pthread_create -fPIE   -o CMakeFiles/cmTC_9e04a.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.10/Modules/CheckFunctionExists.c
+Linking C executable cmTC_9e04a
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9e04a.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    -rdynamic CMakeFiles/cmTC_9e04a.dir/CheckFunctionExists.c.o  -o cmTC_9e04a -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+CMakeFiles/cmTC_9e04a.dir/build.make:97: recipe for target 'cmTC_9e04a' failed
+make[1]: *** [cmTC_9e04a] Error 1
+make[1]: 디렉터리 '/home/url/catkin/prereq/ouster_example/build/CMakeFiles/CMakeTmp' 나감
+Makefile:126: recipe for target 'cmTC_9e04a/fast' failed
+make: *** [cmTC_9e04a/fast] Error 2
+
+

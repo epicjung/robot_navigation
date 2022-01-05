@@ -1,0 +1,2 @@
+/usr/bin/ar qc libouster_viz.a  CMakeFiles/ouster_viz.dir/src/point_viz.cpp.o CMakeFiles/ouster_viz.dir/src/cloud.cpp.o CMakeFiles/ouster_viz.dir/src/camera.cpp.o CMakeFiles/ouster_viz.dir/src/image.cpp.o CMakeFiles/ouster_viz.dir/src/lidar_scan_viz.cpp.o
+/usr/bin/ranlib libouster_viz.a

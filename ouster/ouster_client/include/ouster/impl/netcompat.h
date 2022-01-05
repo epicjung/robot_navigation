@@ -21,21 +21,28 @@
 
 #else  // --------- Compiling on *nix ---------
 
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <arpa/inet.h>
 
 // Define windows types
-typedef int SOCKET;
-typedef fd_set FDSET;
+#ifndef SOCKET
+#define SOCKET int
+#endif
+
+#ifndef FDSET
+#define FDSET fd_set
+#endif
+
 #define SOCKET_ERROR -1
 
 #endif  // --------- End Platform Differentiation Block ---------
 
 namespace ouster {
+namespace sensor {
 namespace impl {
 
 /**
@@ -78,5 +85,13 @@ int socket_set_non_blocking(SOCKET value);
  */
 int socket_set_reuse(SOCKET value);
 
+/**
+ * Set SO_RCVTIMEO on the specified socket
+ * @param sock The socket file descriptor
+ * @return success
+ */
+int socket_set_rcvtimeout(SOCKET sock, int timeout_sec);
+
 }  // namespace impl
+}  // namespace sensor
 }  // namespace ouster

@@ -12,7 +12,8 @@ Summary
 =======
 
 To get started building the client and visualizer libraries, see the `Sample Client and Visualizer`_
-section below. For instructions on ROS, start with the `Example ROS Code`_ section.
+section below. For instructions on ROS, start with the `Example ROS Code`_ section. Python SDK users
+should proceed straight to our `python SDK homepage <python/>`_.
 
 This repository contains sample code for connecting to and configuring ouster sensors, reading and
 visualizing data, and interfacing with ROS.
@@ -20,6 +21,7 @@ visualizing data, and interfacing with ROS.
 * `ouster_client <ouster_client/>`_ contains an example C++ client for ouster sensors
 * `ouster_viz <ouster_viz/>`_ contains a basic point cloud visualizer
 * `ouster_ros <ouster_ros/>`_ contains example ROS nodes for publishing point cloud messages
+* `python <python/>`_ contains the code for the ouster sensor python SDK
 
 
 Sample Client and Visualizer
@@ -52,6 +54,7 @@ where ``<path to ouster_example>`` is the location of the ``ouster_example`` sou
 CMake build script supports several optional flags::
 
     -DBUILD_VIZ=OFF                      Do not build the sample visualizer
+    -DBUILD_PCAP=ON                      Build pcap tools. Requres libpcap and libtins dev packages
     -DBUILD_SHARED_LIBS                  Build shared libraries (.dylib or .so)
     -DCMAKE_POSITION_INDEPENDENT_CODE    Standard flag for position independent code
 
@@ -66,11 +69,12 @@ for dependencies. Follow the official documentation to set up your build environ
   <https://docs.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio?view=vs-2019>`_
 * `Visual Studio CPP Support
   <https://docs.microsoft.com/en-us/cpp/build/vscpp-step-0-installation?view=vs-2019>`_
-* `Vcpkg, at tag "2020.07" installed and integrated with Visual Studio
+* `Vcpkg, at tag "2020.11-1" installed and integrated with Visual Studio
   <https://docs.microsoft.com/en-us/cpp/build/vcpkg?view=msvc-160#installation>`_
 
-**Note** You'll need to run ``git checkout 2020.07`` in the vcpkg directory before bootstrapping to
-use the correct versions of the dependencies. Building may fail unexpectedly if you skip this step.
+**Note** You'll need to run ``git checkout 2020.11-1`` in the vcpkg directory before bootstrapping
+to use the correct versions of the dependencies. Building may fail unexpectedly if you skip this
+step.
 
 Don't forget to integrate vcpkg with Visual Studio after bootstrapping::
 
@@ -110,7 +114,8 @@ and write point clouds out to CSV files::
     ./ouster_client_example <sensor hostname> <udp data destination>
 
 where ``<sensor hostname>`` can be the hostname (os-99xxxxxxxxxx) or IP of the sensor and ``<udp
-data destingation>`` is the hostname or IP to which the sensor should send lidar data.
+data destingation>`` is the hostname or IP to which the sensor should send lidar data. You can also
+supply ``""``, an empty string, to utilize automatic detection.
 
 On Windows, you may need to allow the client/visualizer through the Windows firewall to receive
 sensor data.
@@ -121,10 +126,10 @@ Running the Sample Visualizer
 Navigate to ``ouster_viz`` under the build directory, which should contain an executable named
 ``simple_viz`` . Run::
 
-    ./simple_viz <flags> <sensor hostname> <udp data destination>
+    ./simple_viz [flags] <sensor hostname> [udp data destination]
 
-where ``<sensor hostname>`` can be the hostname (os-99xxxxxxxxxx) or IP of the sensor and ``<udp
-data destingation>`` is the hostname or IP to which the sensor should send lidar data.
+where ``<sensor hostname>`` can be the hostname (os-99xxxxxxxxxx) or IP of the sensor and ``[udp
+data destingation]`` is an optional hostname or IP to which the sensor should send lidar data.
 
 The sample visualizer does not currently include a GUI, but can be controlled with the mouse and
 keyboard:
@@ -141,11 +146,10 @@ Keyboard controls:
     ``p``         Increase point size
     ``o``         Decrease point size
     ``m``         Cycle point cloud coloring mode
-    ``v``         Toggle color cycling in range image
+    ``v``         Toggle range cycling
     ``n``         Toggle display near-IR image from the sensor
-    ``r``         Toggle auto-rotating
     ``shift + r`` Reset camera
-    ``e``         Change range and signal image size
+    ``e``         Change size of displayed 2D images
     ``;``         Increase spacing in range markers
     ``'``         Decrease spacing in range markers
     ``r``         Toggle auto rotate
@@ -181,12 +185,19 @@ The build dependencies include those of the sample code::
     sudo apt install build-essential cmake libglfw3-dev libglew-dev libeigen3-dev \
          libjsoncpp-dev libtclap-dev
 
-and, additionally::
+Additionally, you should install the ros dependencies::
 
     sudo apt install ros-<ROS-VERSION>-ros-core ros-<ROS-VERSION>-pcl-ros \
          ros-<ROS-VERSION>-tf2-geometry-msgs ros-<ROS-VERSION>-rviz
 
-where ``<ROS-VERSION>`` is ``kinetic``, ``melodic``, or ``noetic``. To build::
+where ``<ROS-VERSION>`` is ``kinetic``, ``melodic``, or ``noetic``. 
+
+
+Alternatively, if you would like to install dependencies with `rosdep`::
+
+    rosdep install --from-paths <path to ouster example>
+
+To build::
 
     source /opt/ros/<ROS-VERSION>/setup.bash
     mkdir -p ./myworkspace/src
@@ -202,8 +213,8 @@ new terminal by running::
 
         source myworkspace/devel/setup.bash
 
-Running ROS Nodes with a Live Sensor
-------------------------------------
+Running ROS Nodes with a Sensor
+-------------------------------
 
 Make sure the sensor is connected to the network. See "Connecting to the Sensor" in the `Software
 User Manual`_ for instructions and different options for network configuration.
@@ -211,22 +222,26 @@ User Manual`_ for instructions and different options for network configuration.
 To publish ROS topics from a running sensor, run::
 
     roslaunch ouster_ros ouster.launch sensor_hostname:=<sensor hostname> \
-                                       udp_dest:=<udp data destination> \
-                                       metadata:=<path to metadata json> \
-                                       lidar_mode:=<lidar mode> viz:=<viz>
+                                       metadata:=<path to metadata json>
 
 where:
 
 * ``<sensor hostname>`` can be the hostname (os-99xxxxxxxxxx) or IP of the sensor
-* ``<udp data destination>`` is the hostname or IP to which the sensor should send data
-* ``<path to metadata json>`` is an optional path to json file to save calibration metadata
-* ``<lidar mode>`` is one of ``512x10``, ``512x20``, ``1024x10``, ``1024x20``, or ``2048x10``, and
-* ``<viz>`` is either ``true`` or ``false``: if true, a window should open and start displaying data
-  after a few seconds.
+* ``<path to metadata json>`` is the path you want to save sensor metadata to.
+  You must provide a JSON filename at the end, not just a path to a directory.
 
-Note that if the ``metadata`` parameter is not specified, this command will write metadata to
-``${ROS_HOME}``. By default, the name of this file is based on the hostname of the sensor,
-e.g. ``os-99xxxxxxxxxx.json``.
+Note that by default the working directory of all ROS nodes is set to ``${ROS_HOME}``, generally
+``$HOME/.ros``. If you provide a relative path to ``metadata``, i.e., ``metadata:=meta.json``, it 
+will write to ``${ROS_HOME}/meta.json``. To avoid this, you can provide an absolute path to 
+``metadata``, i.e. ``metadata:=/home/user/meta.json``.
+
+You can also optionally specify:
+
+* ``udp_dest:=<hostname>`` to specify the hostname or IP to which the sensor should send data
+* ``lidar_mode:=<mode>`` where mode is one of ``512x10``, ``512x20``, ``1024x10``, ``1024x20``, or
+  ``2048x10``, and
+* ``viz:=true`` to visualize the sensor output, if you have the rviz ROS package installed
+
 
 Recording Data
 --------------
@@ -236,10 +251,12 @@ another terminal, run::
 
     rosbag record /os_node/imu_packets /os_node/lidar_packets
 
-This will save a bag file of recorded data in the current working directory. 
+This will save a bag file of recorded data in the current working directory.
 
-It's recommended to
-copy and save the metadata file at ``$(ROS_HOME)/<sensor_hostname>.json`` alongside the bag.
+You should copy and save the metadata file alongside your data. The metadata file will be saved at
+the provided path to `roslaunch`. If you run the node and cannot find the metadata file, try looking
+inside your ``${ROS_HOME}``, generally ``$HOME/.ros``. Regardless, you must retain the metadata
+file, as you will not be able to replay your data later without it.
 
 .. _rosbag record: https://wiki.ros.org/rosbag/Commandline#rosbag_record
 
@@ -255,22 +272,16 @@ And in a second terminal run `rosbag play`_::
 
     rosbag play --clock <bag files ...>
 
-If a metadata file is not available, the visualizer will default to ``1024x10``. This can be
-overridden with the ``lidar_mode`` parameter. Visualizer output will only be correct if the same
-``lidar_mode`` parameter is used for both recording and replay.
+A metadata file is mandatory for replay of data. See `Recording Data`_ for how
+to obtain the metadata file when recording your data.
 
 .. _rosbag play: https://wiki.ros.org/rosbag/Commandline#rosbag_play
 
-Visualizing Data in Rviz
-------------------------
 
-To display sensor output using built-in ROS tools (rviz), follow the instructions above for running
-the example ROS code with a sensor or recorded data. Then, run::
+Ouster Python SDK
+=================
 
-    rviz -d ouster_example/ouster_ros/viz.rviz
-
-in another terminal with the ROS environment set up. To view lidar intensity, near-IR, and range
-images, add ``image:=true`` to the ``roslaunch`` command above.
+Python SDK users should proceed straight to the `Ouster python SDK homepage <python/>`_.
 
 
 Additional Information

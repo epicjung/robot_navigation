@@ -2,7 +2,7 @@
 
     <node pkg="receive_gps" type="gps_node" name="gps_node" output="screen">
         <remap from="/gt_traj_pub" to="/gps/path"/>
-        <remap from="/tcpfix" to="/fix"/>
+        <remap from="gps_topic" to="fix"/>
     </node>
 
 </launch>

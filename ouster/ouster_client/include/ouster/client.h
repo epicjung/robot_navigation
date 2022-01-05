@@ -43,6 +43,7 @@ std::shared_ptr<client> init_client(const std::string& hostname = "",
  *
  * @param hostname hostname or ip of the sensor
  * @param udp_dest_host hostname or ip where the sensor should send data
+ * or "" for automatic detection of destination
  * @param lidar_port port on which the sensor will send lidar data
  * @param imu_port port on which the sensor will send imu data
  * @param timeout_sec how long to wait for the sensor to initialize
@@ -53,7 +54,7 @@ std::shared_ptr<client> init_client(const std::string& hostname,
                                     lidar_mode mode = MODE_UNSPEC,
                                     timestamp_mode ts_mode = TIME_FROM_UNSPEC,
                                     int lidar_port = 0, int imu_port = 0,
-                                    int timeout_sec = 30);
+                                    int timeout_sec = 60);
 
 /**
  * Block for up to timeout_sec until either data is ready or an error occurs.
@@ -96,9 +97,45 @@ bool read_imu_packet(const client& cli, uint8_t* buf, const packet_format& pf);
  *
  * @param cli client returned by init_client associated with the connection
  * @param timeout_sec how long to wait for the sensor to initialize
+ * @param legacy_format whether to use legacy format of metadata output
  * @return a text blob of metadata parseable into a sensor_info struct
  */
-std::string get_metadata(client& cli, int timeout_sec = 30);
+std::string get_metadata(client& cli, int timeout_sec = 60,
+                         bool legacy_format = true);
 
+/**
+ * Get sensor config from the sensor
+ *
+ * Populates passed in config with the results of get_config
+ *
+ * @param hostname sensor hostname
+ * @param config sensor config to populate
+ * @param active whether to pull active or passive configs
+ * @return true if sensor config successfully populated
+ */
+bool get_config(const std::string& hostname, sensor_config& config,
+                bool active = true);
+
+
+/**
+ * Flags for set_config()
+ */
+enum config_flags : uint8_t {
+    CONFIG_UDP_DEST_AUTO = (1 << 0),  ///< Set udp_dest automatically
+    CONFIG_PERSIST = (1 << 1)         ///< Make configuration persistent
+};
+
+/**
+ * Set sensor config on sensor
+ *
+ * @throw runtime_error on failure to communcate with the sensor
+ * @throw invalid_argument when config parameters fail validation
+ * @param hostname sensor hostname
+ * @param sensor config
+ * @param flags flags to pass in
+ * @return true if config params successfuly set on sensor
+ */
+bool set_config(const std::string& hostname, const sensor_config& config,
+                uint8_t config_flags = 0);
 }  // namespace sensor
 }  // namespace ouster
