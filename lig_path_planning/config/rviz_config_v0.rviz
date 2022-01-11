@@ -14,6 +14,7 @@ Panels:
         - /SLAM1/Dense map1
         - /SLAM1/Path (global)1
         - /SLAM1/Loop matches1
+        - /Path1
       Splitter Ratio: 0.3618881106376648
     Tree Height: 446
   - Class: rviz/Selection
@@ -99,6 +100,8 @@ Visualization Manager:
           Value: false
         costmapcenter:
           Value: true
+        gps_link:
+          Value: true
         imu_enu_link:
           Value: false
         imu_link:
@@ -131,37 +134,42 @@ Visualization Manager:
           Value: false
         vins_world:
           Value: false
+        world:
+          Value: true
       Marker Scale: 5
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          costmapcenter:
-            {}
-          odom:
-            base_link:
-              chassis_link:
-                imu_link:
-                  imu_enu_link:
-                    {}
-                loam_camera:
-                  {}
-                navsat_link:
-                  {}
-                realsense_link:
-                  {}
-                velodyne:
-                  {}
-            lidar_link:
+        world:
+          map:
+            costmapcenter:
               {}
-            vins_world:
-              vins_body:
-                vins_camera:
-                  {}
-              vins_body_ros:
+            gps_link:
+              {}
+            odom:
+              base_link:
+                chassis_link:
+                  imu_link:
+                    imu_enu_link:
+                      {}
+                  loam_camera:
+                    {}
+                  navsat_link:
+                    {}
+                  realsense_link:
+                    {}
+                  velodyne:
+                    {}
+              lidar_link:
                 {}
+              vins_world:
+                vins_body:
+                  vins_camera:
+                    {}
+                vins_body_ros:
+                  {}
       Update Interval: 0
       Value: true
     - Alpha: 3
@@ -283,8 +291,8 @@ Visualization Manager:
         - Alpha: 0.05000000074505806
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 5.213514804840088
-            Min Value: -1.942784309387207
+            Max Value: 10.647180557250977
+            Min Value: -1.8045244216918945
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -332,14 +340,13 @@ Visualization Manager:
           Unreliable: false
           Value: true
         - Class: rviz/MarkerArray
-          Enabled: true
+          Enabled: false
           Marker Topic: /lvi_sam/lidar/mapping/loop_closure_constraints
           Name: Loop matches
           Namespaces:
-            loop_edges: true
-            loop_nodes: true
+            {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/Axes
           Enabled: true
           Length: 1
@@ -349,6 +356,29 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: SLAM
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 255; 0; 248
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Billboards
+      Line Width: 0.20000000298023224
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /gps/path
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -377,25 +407,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 53.65089797973633
+      Distance: 75.5206069946289
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -30.128334045410156
-        Y: 95.81481170654297
-        Z: -21.78336524963379
+        X: -44.66897964477539
+        Y: 128.27967834472656
+        Z: -22.006887435913086
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9947967529296875
+      Pitch: 1.5697963237762451
       Target Frame: costmapcenter
       Value: Orbit (rviz)
-      Yaw: 5.4035539627075195
+      Yaw: 4.838548183441162
     Saved: ~
 Window Geometry:
   Displays:
