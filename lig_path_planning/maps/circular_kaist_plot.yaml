@@ -1,0 +1,11 @@
+image: circular_kaist_plot.png
+# image: circular_kaist_plot_EE.png
+# image: /home/url/husky/catkin/src/lignex1/LIG/lig_path_planning/maps/circular_kaist_plot.png
+resolution: 0.500 #meters/pixel 600m/1200pixels
+# resolution: 0.400 #meters/pixel 30m/74pixels
+# origin: [-360.000000, -120.000000, 0.000000] 
+origin: [-300.000000, -300.000000, 0.000000] # this in meters (map server 설명 부족) 
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+

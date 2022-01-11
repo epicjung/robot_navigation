@@ -5,11 +5,11 @@ GPS::GPS()
 {
     ros::NodeHandle nh("~");
 
-    navsatfix_sub = nh.subscribe("/gps_topic", 1, &GPS::navSatFixCallback, this);
+    navsatfix_sub = nh.subscribe("/tcpfix", 1, &GPS::navSatFixCallback, this);
     pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/gps/pose", 1000);
     odom_pub = nh.advertise<nav_msgs::Odometry>("/gps/odom", 1000);
     gt_traj_pub = nh.advertise<nav_msgs::Path>("/gt_traj_pub", 1000);
-    first_odom_pub = nh.advertise<nav_msgs::Odometry>("/gps/first_odom", 1000, true);
+    first_gps_pub = nh.advertise<nav_msgs::Odometry>("/gps/first_odom", 1000, true);
 }
 
 GPS::~GPS(){
@@ -22,26 +22,27 @@ void GPS::navSatFixCallback(const sensor_msgs::NavSatFixPtr& fix_msg)
         printf("error data\n");
         return;
     }
-
-    if (!first_data_flag)
+    
+    if (!first_gps_flag)
     {
+
         string no_use;
         LLtoUTM(fix_msg->latitude, fix_msg->longitude, northing_offset, easting_offset, no_use);
-        first_data_flag = true;
+        first_gps_flag = true;
 
-        nav_msgs::Odometry first_odom;
-        first_odom.header.stamp = fix_msg->header.stamp;
-        first_odom.header.frame_id = "earth";
-        first_odom.child_frame_id = "world";
-        first_odom.pose.pose.position.x = easting_offset;
-        first_odom.pose.pose.position.y = northing_offset;
-        first_odom.pose.pose.position.z = 0.0;
-        first_odom.pose.pose.orientation.x = 0.0;
-        first_odom.pose.pose.orientation.y = 0.0;
-        first_odom.pose.pose.orientation.z = 0.0;
-        first_odom.pose.pose.orientation.w = 1.0;
-        first_odom_pub.publish(first_odom);
+        nav_msgs::Odometry first_gps;
+        first_gps.header.stamp = fix_msg->header.stamp;
+        first_gps.header.frame_id = "world";
+        first_gps.child_frame_id = "map";
+        first_gps.pose.pose.position.x = easting_offset;
+        first_gps.pose.pose.position.y = northing_offset;
+        first_gps.pose.pose.orientation.z = 0.0;
+        first_gps.pose.pose.orientation.w = 1.0;
+        first_gps_pub.publish(first_gps);
     }
+
+    // find 
+
     string zone;
     double northing, easting;
     LLtoUTM(fix_msg->latitude, fix_msg->longitude, northing, easting, zone);
@@ -60,14 +61,15 @@ void GPS::navSatFixCallback(const sensor_msgs::NavSatFixPtr& fix_msg)
     odom_pub.publish(odometry);
 
     static tf::TransformBroadcaster br;
-    tf::Transform tf_world_to_map = tf::Transform(tf::createQuaternionFromRPY(0.0, 0.0, -PI/2.0), tf::Vector3(0.0, 0.0, 0.0));
+    tf::Transform tf_world_to_map = tf::Transform(tf::createQuaternionFromRPY(0.0, 0.0, 0.0), tf::Vector3(0.0, 0.0, 0.0));
     tf::StampedTransform trans_world_to_map = tf::StampedTransform(tf_world_to_map, odometry.header.stamp, "world", "map");
     br.sendTransform(trans_world_to_map);
 
     tf::Transform tf_world_gps;
     tf::poseMsgToTF(odometry.pose.pose, tf_world_gps);
     tf::Transform tfAfter = tf_world_to_map.inverse() * tf_world_gps;
-    
+    tf::StampedTransform stf_map_to_gps = tf::StampedTransform(tfAfter, fix_msg->header.stamp, "map", "gps_link");
+    br.sendTransform(stf_map_to_gps);
     geometry_msgs::PoseStamped pose_stamped;
     path.header.frame_id = "odom";
     path.header.stamp = fix_msg->header.stamp;
@@ -84,9 +86,10 @@ int main(int argc, char** argv)
 
     GPS gps;
 
-    ROS_INFO("\033[1;32m----> receive_gps started\033[0m");
+    ROS_INFO("\033[1;32m----> receive_gps started.\033[0m");
 
-    ros::spin();
+    ros::MultiThreadedSpinner spinner(2);
+    spinner.spin();
 
     return 0;
 }

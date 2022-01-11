@@ -1,0 +1,48 @@
+global_costmap:
+  # prefix: "pp_" for using SLAM systems
+  global_frame: costmapcenter # map
+  robot_base_frame: base_link # base_link
+  # robot_base_frame: base_footprint
+
+  update_frequency: 10.0
+  publish_frequency: 10.0
+  transform_tolerance: 1.0
+
+  static_map: true
+ 
+  plugins:
+    - {name: GCM,                         type: "costmap_2d::StaticLayer"}    #GCM: Global Cost Map
+    - {name: GCM_inflation,               type: "costmap_2d::InflationLayer"}
+# References
+#  - https://husarion.com/tutorials/ros-tutorials/7-path-planning/
+#  
+
+local_costmap:
+  global_frame: odom # odom
+  robot_base_frame: base_link  # base_link
+  # robot_base_frame: base_footprint
+
+  update_frequency: 10.0
+  publish_frequency: 10.0
+  transform_tolerance: 0.5  
+
+  static_map: false  
+  rolling_window: false
+  # rolling_window: true #근데 왜 이게 true가 되어있지? ... 그러면 isRolling도 true인거겠지?
+  # bool rolling_window_;  /// < @brief Whether or not the costmap should roll with the robot @ layered_costmap.h from costmap_2d package
+  # false 인게 맞는게, 민호의 costmap은 map 기준으로 나옴.
+
+  resolution: 0.05
+  transform_tolerance: 1.0
+
+  map_topic: /traversability_map # Nope this is the topic to subscribe to. In this case we are going to subscribe to 민호's traversable grid which has a topic of 
+  # traversable_grid: trav_grid
+  plugins:
+    - {name: "MyLigLayer",                type: "lig_layer_namespace::LigLayer" }    
+    # - {name: LCM,                         type: "costmap_2d::LigLocalStaticLayer"}
+    - {name: LCM_inflation,               type: "costmap_2d::InflationLayer"}
+
+# For LIG!, uncomment for turtlebot3 simulation
+# plugins:
+#   - {name: liglocalstatic,            type: "costmap_2d::LigLocalStaticLayer"}
+#   - {name: inflation,                 type: "costmap_2d::InflationLayer"}
