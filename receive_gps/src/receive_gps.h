@@ -12,6 +12,8 @@
 #include <fstream>
 #include "conversions.h"
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
+#include <tf/transform_datatypes.h>
 #include <mutex>
 #include <deque>
 
@@ -36,13 +38,10 @@ private:
 	ros::Publisher odom_pub;
 	ros::Publisher first_gps_pub;
 	bool first_gps_flag;
-	bool first_odom_flag;
     double northing_offset, easting_offset;
 	nav_msgs::Path path;
 
-
 	void navSatFixCallback(const sensor_msgs::NavSatFixPtr& fix_msg);
-	void imuHandler(const sensor_msgs::ImuConstPtr& imu_msg);
 };
 
 #endif

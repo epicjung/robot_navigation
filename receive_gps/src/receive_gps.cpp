@@ -70,6 +70,7 @@ void GPS::navSatFixCallback(const sensor_msgs::NavSatFixPtr& fix_msg)
     tf::Transform tfAfter = tf_world_to_map.inverse() * tf_world_gps;
     tf::StampedTransform stf_map_to_gps = tf::StampedTransform(tfAfter, fix_msg->header.stamp, "map", "gps_link");
     br.sendTransform(stf_map_to_gps);
+
     geometry_msgs::PoseStamped pose_stamped;
     path.header.frame_id = "odom";
     path.header.stamp = fix_msg->header.stamp;
