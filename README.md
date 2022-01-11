@@ -45,4 +45,12 @@ roscd lvi_sam && cd launch && bash resize.sh
 roslaunch lvi_sam run.launch
 ```
 
+- Run path planner
+
+```bash
+roslaunch lig_path_planning rviz.launch
+```
+
+# Parameters
+
 
