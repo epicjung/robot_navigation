@@ -1,7 +1,7 @@
 #include "receive_gps.h"
 
 GPS::GPS()
-: first_data_flag(false)
+: first_gps_flag(false)
 {
     ros::NodeHandle nh("~");
 
